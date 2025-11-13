@@ -28,6 +28,27 @@ public class StructureTester<T extends IRecord<T>> {
         this.expectedBlocks = new ArrayList<>();
         this.random = new Random(seed);
         this.inserted = new ArrayList<>();
+
+        this.loadExistingHeapState();
+    }
+
+    private void loadExistingHeapState() {
+        int totalBlocks = this.heapFile.getTotalBlocks(); // you MUST add getter to HeapFile
+
+        for (int i = 0; i < totalBlocks; i++) {
+            Block<T> block = this.heapFile.getBlock(i);
+            List<IRecord<T>> list = new ArrayList<>();
+
+            for (int j = 0; j < block.getValidCount(); j++) {
+                IRecord<T> rec = block.getRecordAt(j);  // You must add getRecordAt()
+                list.add(rec);
+
+                // Track in inserted list
+                this.inserted.add(new IndexedRecord<>(i, (T) rec));
+            }
+
+            this.expectedBlocks.add(list);
+        }
     }
 
     // ========= INSERT =========
@@ -79,8 +100,6 @@ public class StructureTester<T extends IRecord<T>> {
     }
 
     // ========= RANDOM RECORD GENERATION =========
-
-    @SuppressWarnings("unchecked")
     public T generateRandomRecord() {
         if (!this.heapFile.getRecordClass().equals(Osoba.class)) {
             throw new IllegalStateException("This tester only supports Osoba");

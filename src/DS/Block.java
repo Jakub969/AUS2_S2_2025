@@ -103,6 +103,11 @@ public class Block<T extends IRecord<T>> implements IByteOperation<T> {
         return this.blockSize;
     }
 
+    public IRecord<T> getRecordAt(int index) {
+        return this.records[index];
+    }
+
+
     public T getCopyOfRecord(T record) {
         for (int i = 0; i < this.blockFactor; i++) {
             IRecord<T> currentRecord = this.records[i];
