@@ -9,6 +9,7 @@ public class HeapFile<T extends IRecord<T>> {
     private final File dataFile;
     private final File emptyBlocksFile;
     private final File partialBlocksFile;
+    private final File headerFile;
 
     private final Class<T> recordClass;
     private final int blockSize;
@@ -23,6 +24,7 @@ public class HeapFile<T extends IRecord<T>> {
         this.dataFile = new File(baseFileName);
         this.emptyBlocksFile = new File(baseFileName + "_empty.txt");
         this.partialBlocksFile = new File(baseFileName + "_partial.txt");
+        this.headerFile = new File(baseFileName + "_header.txt");
 
         this.recordClass = recordClass;
         this.blockSize = blockSize;
@@ -72,39 +74,42 @@ public class HeapFile<T extends IRecord<T>> {
         return blockIndex;
     }
 
-    public boolean deleteRecord(T record) {
-        int blocksInFile = this.totalBlocks;
-        boolean deleted = false;
-
-        for (int i = 0; i < blocksInFile; i++) {
-            Block<T> block = this.getBlock(i);
-            T removed = block.removeRecord(record);
-            if (removed != null) {
-                deleted = true;
-                this.totalRecords--;
-                this.updateListsAfterDelete(i, block);
-                this.writeBlockToFile(block, i);
-                break;
-            }
+    public boolean deleteRecord(int index, T record) {
+        if (index < 0 || index >= this.totalBlocks) {
+            return false;
         }
 
-        if (deleted) {
-            this.trimTrailingEmptyBlocks();
-            this.saveLists();
-            this.saveHeader();
+        Block<T> block = this.getBlock(index);
+        T removed = block.removeRecord(record);
+
+        if (removed == null) {
+            return false;
         }
 
-        return deleted;
+        this.totalRecords--;
+
+        this.updateListsAfterDelete(index, block);
+        this.writeBlockToFile(block, index);
+
+        // Trim empty blocks only if the deleted one is last or if trailing empty exist
+        this.trimTrailingEmptyBlocks();
+
+        this.saveLists();
+        this.saveHeader();
+
+        return true;
     }
 
-    public T findRecord(T record) {
-        for (int i = 0; i < this.totalBlocks; i++) {
-            Block<T> block = this.getBlock(i);
-            T found = block.getCopyOfRecord(record);
-            if (found != null) return found;
+
+    public T findRecord(int index, T record) {
+        if (index < 0 || index >= this.totalBlocks) {
+            return null;
         }
-        return null;
+
+        Block<T> block = this.getBlock(index);
+        return block.getCopyOfRecord(record);
     }
+
 
     // ========= LIST MANAGEMENT ===========
 
@@ -176,22 +181,20 @@ public class HeapFile<T extends IRecord<T>> {
     }
 
     private void saveHeader() {
-        try (RandomAccessFile raf = new RandomAccessFile(this.dataFile, "rw")) {
-            raf.seek(0);
-            raf.writeInt(this.totalBlocks);
-            raf.writeInt(this.totalRecords);
+        try (PrintWriter pw = new PrintWriter(new FileWriter(this.headerFile))) {
+            pw.println(this.totalBlocks);
+            pw.println(this.totalRecords);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     private void loadHeader() {
-        try (RandomAccessFile raf = new RandomAccessFile(this.dataFile, "r")) {
-            if (raf.length() >= 8) {
-                this.totalBlocks = raf.readInt();
-                this.totalRecords = raf.readInt();
-            }
-        } catch (IOException e) {
+        if (!this.headerFile.exists()) return;
+        try (BufferedReader br = new BufferedReader(new FileReader(this.headerFile))) {
+            this.totalBlocks = Integer.parseInt(br.readLine());
+            this.totalRecords = Integer.parseInt(br.readLine());
+        } catch (IOException | NumberFormatException e) {
             throw new RuntimeException(e);
         }
     }

@@ -15,11 +15,13 @@ public class Block<T extends IRecord<T>> implements IByteOperation<T> {
     private int previousBlockIndex;
     private final Class<T> recordType;
     private final int recordSize;
+    private final int blockSize;
 
     public Block(Class<T> recordType, int sizeOfBlock) {
         this.recordType = recordType;
         this.recordSize = this.getSizeOfRecord();
-        int actualSizeOfBlock = sizeOfBlock - (3 * Integer.BYTES);
+        this.blockSize = sizeOfBlock;
+        int actualSizeOfBlock = this.blockSize - (3 * Integer.BYTES);
         this.blockFactor = actualSizeOfBlock / this.recordSize;
         this.records = new IRecord[this.blockFactor];
         this.nextBlockIndex = -1;
@@ -87,9 +89,8 @@ public class Block<T extends IRecord<T>> implements IByteOperation<T> {
                 }
             }
             int currentSize = hlpByteArrayOutputStream.size();
-            int totalSize = this.getSize();
-            if (currentSize < totalSize) {
-                hlpOutStream.write(new byte[totalSize - currentSize]);
+            if (currentSize < this.blockSize) {
+                hlpOutStream.write(new byte[this.blockSize - currentSize]);
             }
             return hlpByteArrayOutputStream.toByteArray();
         } catch (IOException e) {
@@ -99,7 +100,7 @@ public class Block<T extends IRecord<T>> implements IByteOperation<T> {
 
     @Override
     public int getSize() {
-        return 3 * Integer.BYTES + (this.recordSize * this.blockFactor);
+        return this.blockSize;
     }
 
     public T getCopyOfRecord(T record) {
