@@ -23,12 +23,10 @@ public class BlockView extends JPanel {
             JPanel blockPanel = new JPanel(new BorderLayout());
             blockPanel.setBorder(BorderFactory.createTitledBorder("Block " + i));
 
-            // ---------- Block Metadata ----------
             StringBuilder header = new StringBuilder();
             header.append("validCount: ").append(block.getValidCount()).append("\n");
             header.append("Records:\n");
 
-            // ---------- Records ----------
             for (int j = 0; j < block.getBlockFactor(); j++) {
                 var rec = block.getRecordAt(j);
                 header.append("[").append(j).append("] ").append(rec).append("\n");

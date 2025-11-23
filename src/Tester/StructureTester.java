@@ -28,13 +28,11 @@ public class StructureTester<T extends IRecord<T>> {
         this.expectedBlocks = new ArrayList<>();
         this.random = new Random(seed);
         this.inserted = new ArrayList<>();
-
         this.loadExistingHeapState();
     }
 
     private void loadExistingHeapState() {
         int totalBlocks = this.heapFile.getTotalBlocks();
-
         for (int i = 0; i < totalBlocks; i++) {
             Block<T> block = this.heapFile.getBlock(i);
             List<IRecord<T>> list = new ArrayList<>();
@@ -42,10 +40,8 @@ public class StructureTester<T extends IRecord<T>> {
             for (int j = 0; j < block.getValidCount(); j++) {
                 IRecord<T> rec = block.getRecordAt(j);
                 list.add(rec);
-
                 this.inserted.add(new IndexedRecord<>(i, (T) rec));
             }
-
             this.expectedBlocks.add(list);
         }
     }
@@ -64,9 +60,7 @@ public class StructureTester<T extends IRecord<T>> {
     public void removeRecord(IndexedRecord<T> entry) {
         boolean removedHeap = this.heapFile.deleteRecord(entry.blockIndex, entry.record);
 
-        boolean removedExpected = this.expectedBlocks
-                .get(entry.blockIndex)
-                .removeIf(r -> r.isEqual(entry.record));
+        boolean removedExpected = this.expectedBlocks.get(entry.blockIndex).removeIf(r -> r.isEqual(entry.record));
 
         if (removedHeap != removedExpected) {
             throw new IllegalStateException("Delete mismatch: heap vs expected");
@@ -78,10 +72,7 @@ public class StructureTester<T extends IRecord<T>> {
     public void findRecord(IndexedRecord<T> entry) {
         T fromHeap = this.heapFile.findRecord(entry.blockIndex, entry.record);
 
-        boolean expectedFound = this.expectedBlocks
-                .get(entry.blockIndex)
-                .stream()
-                .anyMatch(r -> r.isEqual(entry.record));
+        boolean expectedFound = this.expectedBlocks.get(entry.blockIndex).stream().anyMatch(r -> r.isEqual(entry.record));
 
         boolean heapFound = (fromHeap != null);
 
@@ -94,36 +85,20 @@ public class StructureTester<T extends IRecord<T>> {
         if (!this.heapFile.getRecordClass().equals(Osoba.class)) {
             throw new IllegalStateException("This tester only supports Osoba");
         }
-
-        String meno = this.randomString(5 + this.random.nextInt(11));
-        String priez = this.randomString(5 + this.random.nextInt(10));
-        String uuid = this.randomString(10);
-        Date date = new Date(Math.abs(this.random.nextLong()) % System.currentTimeMillis());
-
-        return (T) new Osoba(meno, priez, date, uuid);
-    }
-
-    private String randomString(int length) {
-        char[] c = new char[length];
-        for (int i = 0; i < length; i++) {
-            c[i] = (char) ('A' + this.random.nextInt(26));
-        }
-        return new String(c);
+        return (T) Osoba.generateRandom();
     }
 
     public void performRandomOperations(int count) {
         for (int i = 0; i < count; i++) {
 
-            int op = this.random.nextInt(3); // 0=insert, 1=delete, 2=find
+            int op = this.random.nextInt(3);
 
             switch (op) {
-
                 case 0 -> {
                     T rec = this.generateRandomRecord();
                     this.insertRecord(rec);
                     System.out.println("[INSERT] " + rec);
                 }
-
                 case 1 -> {
                     if (!this.inserted.isEmpty()) {
                         IndexedRecord<T> entry = this.inserted.remove(this.random.nextInt(this.inserted.size()));
@@ -131,7 +106,6 @@ public class StructureTester<T extends IRecord<T>> {
                         System.out.println("[DELETE] " + entry.record);
                     }
                 }
-
                 case 2 -> {
                     if (!this.inserted.isEmpty()) {
                         IndexedRecord<T> entry = this.inserted.get(this.random.nextInt(this.inserted.size()));
@@ -146,8 +120,7 @@ public class StructureTester<T extends IRecord<T>> {
     }
 
     private void trimExpectedBlocks() {
-        while (!this.expectedBlocks.isEmpty() &&
-                this.expectedBlocks.get(this.expectedBlocks.size() - 1).isEmpty()) {
+        while (!this.expectedBlocks.isEmpty() && this.expectedBlocks.get(this.expectedBlocks.size() - 1).isEmpty()) {
             this.expectedBlocks.remove(this.expectedBlocks.size() - 1);
         }
     }

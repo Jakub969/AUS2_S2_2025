@@ -10,13 +10,10 @@ public class HeapFile<T extends IRecord<T>> {
     private final File emptyBlocksFile;
     private final File partialBlocksFile;
     private final File headerFile;
-
     private final Class<T> recordClass;
     private final int blockSize;
-
     private final LinkedList<Integer> emptyBlocks;
     private final LinkedList<Integer> partiallyEmptyBlocks;
-
     private int totalBlocks;
     private int totalRecords;
 
@@ -25,12 +22,10 @@ public class HeapFile<T extends IRecord<T>> {
         this.emptyBlocksFile = new File(baseFileName + "_empty.txt");
         this.partialBlocksFile = new File(baseFileName + "_partial.txt");
         this.headerFile = new File(baseFileName + "_header.txt");
-
         this.recordClass = recordClass;
         this.blockSize = blockSize;
         this.emptyBlocks = new LinkedList<>();
         this.partiallyEmptyBlocks = new LinkedList<>();
-
         if (this.dataFile.exists()) {
             this.loadLists();
             this.loadHeader();
@@ -59,9 +54,7 @@ public class HeapFile<T extends IRecord<T>> {
         }
 
         block.addRecord(record);
-
         this.updateListsAfterInsert(blockIndex, block);
-
         this.writeBlockToFile(block, blockIndex);
         if (blockIndex == this.totalBlocks) {
             this.totalBlocks++;
@@ -86,15 +79,12 @@ public class HeapFile<T extends IRecord<T>> {
         }
 
         this.totalRecords--;
-
         this.updateListsAfterDelete(index, block);
         this.writeBlockToFile(block, index);
-
         this.trimTrailingEmptyBlocks();
 
         this.saveLists();
         this.saveHeader();
-
         return true;
     }
 
