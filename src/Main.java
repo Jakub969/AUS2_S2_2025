@@ -6,7 +6,7 @@ import Tester.StructureTester;
 
 public class Main {
     public static void main(String[] args) {
-        for (int test = 0; test < 20; test++) {
+        /*for (int test = 0; test < 20; test++) {
             long seed = System.currentTimeMillis();
             System.out.println("Testujem zo seedom: " + seed);
 
@@ -21,7 +21,7 @@ public class Main {
                 e.printStackTrace();
                 return;
             }
-        }
+        }*/
         HeapFile<Osoba> heap = new HeapFile<>("osobyHeap.bin", Osoba.class, 1024);
         AppController controller = new AppController(heap);
         new MainWindow(controller);

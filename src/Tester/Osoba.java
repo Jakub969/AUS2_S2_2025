@@ -1,12 +1,13 @@
 package Tester;
 
+import Interface.IHashable;
 import Interface.IRecord;
 
 import java.io.*;
 import java.util.Date;
 import java.util.Random;
 
-public class Osoba implements IRecord<Osoba> {
+public class Osoba implements IRecord<Osoba>, IHashable {
     private String meno;
     private final int MAX_MENO_LENGTH = 15;
     private String priezvisko;
@@ -162,5 +163,10 @@ public class Osoba implements IRecord<Osoba> {
         Random r = new Random();
         String[] surnames = new String[]{"Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez"};
         return surnames[r.nextInt(surnames.length)];
+    }
+
+    @Override
+    public long getHash() {
+        return this.UUID.hashCode();
     }
 }

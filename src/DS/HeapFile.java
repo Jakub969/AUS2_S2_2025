@@ -122,14 +122,14 @@ public class HeapFile<T extends IRecord<T>> {
         }
     }
 
-    private void trimTrailingEmptyBlocks() {
+    void trimTrailingEmptyBlocks() {
         while (this.totalBlocks > 0 && this.emptyBlocks.contains(this.totalBlocks - 1)) {
             this.truncateLastBlock();
             this.emptyBlocks.remove(Integer.valueOf(this.totalBlocks));
         }
     }
 
-    private void writeBlockToFile(Block<T> block, int blockIndex) {
+    void writeBlockToFile(Block<T> block, int blockIndex) {
         byte[] blockData = block.toByteArray();
         try (RandomAccessFile raf = new RandomAccessFile(this.dataFile, "rw")) {
             raf.seek((long) blockIndex * this.blockSize);
@@ -151,6 +151,16 @@ public class HeapFile<T extends IRecord<T>> {
         }
         return block;
     }
+
+    public int allocateNewBlock() {
+        int index = this.totalBlocks;
+        Block<T> block = new Block<>(this.recordClass, this.blockSize);
+        this.writeBlockToFile(block, index);
+        this.totalBlocks++;
+        this.saveHeader();
+        return index;
+    }
+
 
     private void truncateLastBlock() {
         try (RandomAccessFile raf = new RandomAccessFile(this.dataFile, "rw")) {
@@ -220,6 +230,10 @@ public class HeapFile<T extends IRecord<T>> {
     public int getTotalRecords() { return this.totalRecords; }
     public List<Integer> getEmptyBlocks() { return Collections.unmodifiableList(this.emptyBlocks); }
     public List<Integer> getPartiallyEmptyBlocks() { return Collections.unmodifiableList(this.partiallyEmptyBlocks); }
+
+    public int getBlockSize() {
+        return this.blockSize;
+    }
 
     public Class<T> getRecordClass() {
         return this.recordClass;
