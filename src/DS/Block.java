@@ -158,10 +158,10 @@ public class Block<T extends IRecord<T>> implements IByteOperation<T> {
     }
 
     public int getNextBlockIndex() { return this.nextBlockIndex; }
-    public void setNextBlockIndex(int n) { this.nextBlockIndex = n; }
+    public void setNextBlockIndex(int nextBlockIndex) { this.nextBlockIndex = nextBlockIndex; }
 
     public int getPreviousBlockIndex() { return this.previousBlockIndex; }
-    public void setPreviousBlockIndex(int p) { this.previousBlockIndex = p; }
+    public void setPreviousBlockIndex(int previousBlockIndex) { this.previousBlockIndex = previousBlockIndex; }
 
 
     public int getValidCount() {
