@@ -76,8 +76,6 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         }
     }
 
-    // -------------------- API --------------------
-
     public void insert(T record) {
         String key = this.keyExtractor.apply(record);
         int bucket = this.bucketForKey(key);
@@ -90,20 +88,12 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         if (head == -1) {
             return null;
         }
+
         int idx = head;
-        Block<T> block = this.heapFilePrimary.getBlock(idx);
-        for (int r = 0; r < block.getBlockFactor(); r++) {
-            IRecord<T> rec = block.getRecordAt(r);
-            if (rec != null) {
-                T cand = (T) rec;
-                if (key.equals(this.keyExtractor.apply(cand))) {
-                    return cand.createCopy();
-                }
-            }
-        }
-        idx = block.getNextBlockIndex();
+        HeapFile<T> currentFile = this.heapFilePrimary;
+
         while (idx != -1) {
-            block = this.heapFileOverflow.getBlock(idx);
+            Block<T> block = currentFile.getBlock(idx);
             for (int r = 0; r < block.getBlockFactor(); r++) {
                 IRecord<T> rec = block.getRecordAt(r);
                 if (rec != null) {
@@ -113,7 +103,10 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
                     }
                 }
             }
+
             idx = block.getNextBlockIndex();
+            currentFile = (idx != -1 && idx < this.heapFilePrimary.getTotalBlocks()) ?
+                    this.heapFilePrimary : this.heapFileOverflow;
         }
         return null;
     }
@@ -171,8 +164,6 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         return false;
     }
 
-    // -------------------- insertion helpers --------------------
-
     private void insertIntoBucket(int bucket, T record) {
         int head = this.bucketPointers.get(bucket);
         if (head == -1) {
@@ -182,39 +173,53 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
             return;
         }
 
+        // First try to find space in existing chain (both primary and overflow)
         int idx = head;
+        HeapFile<T> currentFile = this.heapFilePrimary;
+
         while (true) {
-            Block<T> block = this.heapFilePrimary.getBlock(idx);
+            Block<T> block = currentFile.getBlock(idx);
             if (block.getValidCount() < block.getBlockFactor()) {
                 block.addRecord(record);
-                this.heapFilePrimary.writeBlockToFile(block, idx);
+                currentFile.writeBlockToFile(block, idx);
                 return;
             }
+
             int next = block.getNextBlockIndex();
             if (next == -1) {
-                // allocate new overflow block
-                int newIdx = this.heapFileOverflow.allocateNewBlock();
-                Block<T> newB = this.heapFileOverflow.getBlock(newIdx);
+                // Allocate new overflow block
+                int newIdx = this.heapFileOverflow.insertRecord(record);
                 block.setNextBlockIndex(newIdx);
-                newB.setPreviousBlockIndex(idx);
-                this.heapFilePrimary.writeBlockToFile(block, idx);
-                newB.addRecord(record);
-                this.heapFileOverflow.writeBlockToFile(newB, newIdx);
+                currentFile.writeBlockToFile(block, idx);
 
-                // simple split trigger: split one bucket after overflow allocated
+                // Set previous pointer in new block
+                Block<T> newBlock = this.heapFileOverflow.getBlock(newIdx);
+                newBlock.setPreviousBlockIndex(idx);
+                this.heapFileOverflow.writeBlockToFile(newBlock, newIdx);
+
                 this.splitNextBucketIfNeeded();
                 return;
             } else {
+                // Move to next block in chain
                 idx = next;
+                currentFile = (next < this.heapFilePrimary.getTotalBlocks()) ?
+                        this.heapFilePrimary : this.heapFileOverflow;
             }
         }
     }
 
-    // -------------------- split logic --------------------
-
     private void splitNextBucketIfNeeded() {
-        // simple policy: split always when overflow allocated, but avoid nested splits by single call
-        this.splitNextBucket();
+        // Only split if load factor exceeds threshold
+        double loadFactor = (double) this.heapFilePrimary.getTotalRecords() /
+                (this.getNumberOfBuckets() * this.getAverageBlockCapacity());
+        if (loadFactor > 0.75) { // Adjust threshold as needed
+            this.splitNextBucket();
+        }
+    }
+
+    private double getAverageBlockCapacity() {
+        // Return average records per block
+        return (double) this.heapFilePrimary.getBlock(0).getBlockFactor();
     }
 
     public void splitNextBucket() {
@@ -310,13 +315,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         }
     }
 
-    // -------------------- utilities --------------------
-
     public int getNumberOfBuckets() {
         return this.bucketPointers.size();
-    }
-
-    public List<Integer> getBucketPointers() {
-        return Collections.unmodifiableList(this.bucketPointers);
     }
 }
