@@ -66,6 +66,22 @@ public class HeapFile<T extends IRecord<T>> {
         return blockIndex;
     }
 
+    public BlockInsertResult insertRecordWithMetadata(T record, int nextBlock, int prevBlock) {
+        int blockIndex = this.insertRecord(record);
+        Block<T> block = this.getBlock(blockIndex);
+        block.setNextBlockIndex(nextBlock);
+        block.setPreviousBlockIndex(prevBlock);
+        this.writeBlockToFile(block, blockIndex);
+        return new BlockInsertResult(blockIndex, block);
+    }
+
+    public void updateChainPointers(int blockIndex, int nextBlock, int prevBlock) {
+        Block<T> block = this.getBlock(blockIndex);
+        block.setNextBlockIndex(nextBlock);
+        block.setPreviousBlockIndex(prevBlock);
+        this.writeBlockToFile(block, blockIndex);
+    }
+
     public boolean deleteRecord(int index, T record) {
         if (index < 0 || index >= this.totalBlocks) {
             return false;
@@ -96,6 +112,36 @@ public class HeapFile<T extends IRecord<T>> {
 
         Block<T> block = this.getBlock(index);
         return block.getCopyOfRecord(record);
+    }
+
+    public T findInChain(int startBlockIndex, T recordTemplate) {
+        int currentIndex = startBlockIndex;
+
+        while (currentIndex != -1) {
+            Block<T> block = this.getBlock(currentIndex);
+            T found = block.getCopyOfRecord(recordTemplate);
+            if (found != null) {
+                return found;
+            }
+            currentIndex = block.getNextBlockIndex();
+        }
+        return null;
+    }
+
+    public boolean deleteFromChain(int startBlockIndex, T record) {
+        int currentIndex = startBlockIndex;
+
+        while (currentIndex != -1) {
+            Block<T> block = this.getBlock(currentIndex);
+            T removed = block.removeRecord(record);
+
+            if (removed != null) {
+                this.writeBlockToFile(block, currentIndex);
+                return true;
+            }
+            currentIndex = block.getNextBlockIndex();
+        }
+        return false;
     }
 
     private void updateListsAfterInsert(int index, Block<T> block) {
@@ -164,15 +210,31 @@ public class HeapFile<T extends IRecord<T>> {
         return block;
     }
 
-    public int allocateNewBlock() {
+    public int allocateEmptyBlock() {
         int index = this.totalBlocks;
         Block<T> block = new Block<>(this.recordClass, this.blockSize);
         this.writeBlockToFile(block, index);
         this.totalBlocks++;
+        this.emptyBlocks.add(index);
         this.saveHeader();
+        this.saveLists();
         return index;
     }
 
+    public boolean hasFreeSpace(int blockIndex) {
+        Block<T> block = this.getBlock(blockIndex);
+        return block.getValidCount() < block.getBlockFactor();
+    }
+
+    public int getNextBlockIndex(int blockIndex) {
+        Block<T> block = this.getBlock(blockIndex);
+        return block.getNextBlockIndex();
+    }
+
+    public int getPreviousBlockIndex(int blockIndex) {
+        Block<T> block = this.getBlock(blockIndex);
+        return block.getPreviousBlockIndex();
+    }
 
     private void truncateLastBlock(int numberOfBlocks) {
         try (RandomAccessFile raf = new RandomAccessFile(this.dataFile, "rw")) {
@@ -249,4 +311,15 @@ public class HeapFile<T extends IRecord<T>> {
     public Class<T> getRecordClass() {
         return this.recordClass;
     }
+
+    public static class BlockInsertResult<T extends IRecord<T>> {
+        public final int blockIndex;
+        public final Block<T> block;
+
+        public BlockInsertResult(int blockIndex, Block<T> block) {
+            this.blockIndex = blockIndex;
+            this.block = block;
+        }
+    }
 }
+

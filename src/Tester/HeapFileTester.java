@@ -6,7 +6,7 @@ import Interface.IRecord;
 
 import java.util.*;
 
-public class StructureTester<T extends IRecord<T>> {
+public class HeapFileTester<T extends IRecord<T>> {
 
     private static class IndexedRecord<R> {
         final int blockIndex;
@@ -23,7 +23,7 @@ public class StructureTester<T extends IRecord<T>> {
     private final Random random;
     private final List<IndexedRecord<T>> inserted;
 
-    public StructureTester(HeapFile<T> heapFile, long seed) {
+    public HeapFileTester(HeapFile<T> heapFile, long seed) {
         this.heapFile = heapFile;
         this.expectedBlocks = new ArrayList<>();
         this.random = new Random(seed);

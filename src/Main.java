@@ -1,9 +1,8 @@
-import DS.HeapFile;
 import DS.LinearHashFile;
 import GUI.Controller.AppController;
 import GUI.View.MainWindow;
+import Tester.HashFileTester;
 import Tester.Osoba;
-import Tester.StructureTester;
 
 public class Main {
     public static void main(String[] args) {
@@ -12,7 +11,7 @@ public class Main {
             System.out.println("Testujem zo seedom: " + seed);
 
             HeapFile<Osoba> heap = new HeapFile<>("osobyHeap.bin", Osoba.class, 1024);
-            StructureTester<Osoba> tester = new StructureTester<>(heap, seed);
+            HeapFileTester<Osoba> tester = new HeapFileTester<>(heap, seed);
 
             try {
                 tester.performRandomOperations(500);
@@ -23,8 +22,30 @@ public class Main {
                 return;
             }
         }*/
-        LinearHashFile<Osoba> heap = new LinearHashFile<>(Osoba.class, 2, Osoba::getHash, "osobyPrimary.bin", "osobyOverflow.bin", 1024, 512);
+        /*LinearHashFile<Osoba> heap = new LinearHashFile<>(Osoba.class, 2, Osoba::getHash, "osobyPrimary.bin", "osobyOverflow.bin", 1024, 512);
         AppController controller = new AppController(heap);
-        new MainWindow(controller);
+        new MainWindow(controller);*/
+        LinearHashFile<Osoba> hashFile = new LinearHashFile<>(
+                Osoba.class,
+                4, // initial buckets
+                Osoba::getHash, // key extractor
+                "primary_data", // primary file name
+                "overflow_data", // overflow file name
+                512, // primary block size
+                256  // overflow block size
+        );
+
+        // Create tester
+        HashFileTester<Osoba> tester = new HashFileTester<>(
+                hashFile,
+                Osoba::getHash,
+                12345L // seed
+        );
+
+        // Perform random operations
+        tester.performRandomOperations(50);
+
+        // Print final bucket distribution
+        tester.printBucketDistribution();
     }
 }
