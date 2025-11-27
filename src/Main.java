@@ -1,4 +1,5 @@
 import DS.HeapFile;
+import DS.LinearHashFile;
 import GUI.Controller.AppController;
 import GUI.View.MainWindow;
 import Tester.Osoba;
@@ -22,7 +23,7 @@ public class Main {
                 return;
             }
         }*/
-        HeapFile<Osoba> heap = new HeapFile<>("osobyHeap.bin", Osoba.class, 1024);
+        LinearHashFile<Osoba> heap = new LinearHashFile<>(Osoba.class, 2, Osoba::getHash, "osobyPrimary.bin", "osobyOverflow.bin", 1024, 512);
         AppController controller = new AppController(heap);
         new MainWindow(controller);
     }

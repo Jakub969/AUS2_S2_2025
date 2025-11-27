@@ -72,12 +72,14 @@ public class OsobaForm extends JPanel {
         });
 
         deleteBtn.addActionListener(e -> {
-            controller.deleteOsoba(Integer.parseInt(this.blockIndexField.getText()), this.uuidField.getText());
+            Osoba o = Osoba.fromUUID(this.uuidField.getText());
+            controller.deleteOsoba(o);
             onUpdate.run();
         });
 
         findBtn.addActionListener(e -> {
-            Osoba o = controller.findOsoba(Integer.parseInt(this.blockIndexField.getText()), this.uuidField.getText());
+            Osoba dummy = Osoba.fromUUID(this.uuidField.getText());
+            Osoba o = controller.findOsoba(dummy);
             JOptionPane.showMessageDialog(this,
                     (o == null) ? "Not found" : o.toString());
         });

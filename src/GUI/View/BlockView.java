@@ -24,7 +24,10 @@ public class BlockView extends JPanel {
             blockPanel.setBorder(BorderFactory.createTitledBorder("Block " + i));
 
             StringBuilder header = new StringBuilder();
+            header.append("blockFactor: ").append(block.getBlockFactor()).append("\n");
             header.append("validCount: ").append(block.getValidCount()).append("\n");
+            header.append("nextBlockIndex: ").append(block.getNextBlockIndex()).append("\n");
+            header.append("previousBlockIndex: ").append(block.getPreviousBlockIndex()).append("\n");
             header.append("Records:\n");
 
             for (int j = 0; j < block.getBlockFactor(); j++) {

@@ -122,14 +122,26 @@ public class HeapFile<T extends IRecord<T>> {
         }
     }
 
-    void trimTrailingEmptyBlocks() {
-        while (this.totalBlocks > 0 && this.emptyBlocks.contains(this.totalBlocks - 1)) {
-            this.truncateLastBlock();
+    public void trimTrailingEmptyBlocks() {
+        int last = this.totalBlocks - 1;
+
+        while (last >= 0 && this.emptyBlocks.contains(last)) {
+            last--;
+        }
+
+        int numberOfBlocks = this.totalBlocks - (last + 1);
+        if (numberOfBlocks <= 0) {
+            return;
+        }
+        this.truncateLastBlock(numberOfBlocks);
+
+        for (int i = 0; i < numberOfBlocks; i++) {
+            this.totalBlocks--;
             this.emptyBlocks.remove(Integer.valueOf(this.totalBlocks));
         }
     }
 
-    void writeBlockToFile(Block<T> block, int blockIndex) {
+    public void writeBlockToFile(Block<T> block, int blockIndex) {
         byte[] blockData = block.toByteArray();
         try (RandomAccessFile raf = new RandomAccessFile(this.dataFile, "rw")) {
             raf.seek((long) blockIndex * this.blockSize);
@@ -162,11 +174,10 @@ public class HeapFile<T extends IRecord<T>> {
     }
 
 
-    private void truncateLastBlock() {
+    private void truncateLastBlock(int numberOfBlocks) {
         try (RandomAccessFile raf = new RandomAccessFile(this.dataFile, "rw")) {
-            long newLength = Math.max(0, raf.length() - this.blockSize);
+            long newLength = Math.max(0, raf.length() - ((long) this.blockSize * numberOfBlocks));
             raf.setLength(newLength);
-            this.totalBlocks--;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

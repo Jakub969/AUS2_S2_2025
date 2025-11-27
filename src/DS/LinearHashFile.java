@@ -10,14 +10,14 @@ import java.util.function.Function;
 public class LinearHashFile<T extends IRecord<T> & IHashable> {
     private HeapFile<T> heapFilePrimary;
     private HeapFile<T> heapFileOverflow;
-    private final Function<T, String> keyExtractor;
+    private final Function<T, Long> keyExtractor;
 
     private List<Integer> bucketPointers; // head block index per bucket, -1 if empty
     private int i;           // current level: buckets = 2^i initially
     private int nextSplit;
     private final File dirFile;
 
-    public LinearHashFile(Class<T> recordClass, int initialBuckets, Function<T,String> keyExtractor, String baseFileName, String overflowFileName, int blockSizePrimary, int blockSizeOverflow) {
+    public LinearHashFile(Class<T> recordClass, int initialBuckets, Function<T,Long> keyExtractor, String baseFileName, String overflowFileName, int blockSizePrimary, int blockSizeOverflow) {
         if (initialBuckets <= 0 || (initialBuckets & (initialBuckets - 1)) != 0) {
             throw new IllegalArgumentException("initialBuckets must be power of two and > 0");
         }
@@ -40,14 +40,14 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         }
     }
 
-    private int bucketForKey(String key) {
-        int h = Math.abs(key.hashCode());
+    private int bucketForKey(long key) {
+        long h = key & 0x7FFFFFFFFFFFFFFFL;
         int mod = (1 << this.i);
-        int bucket = h & (mod - 1);
+        long bucket = h & (mod - 1);
         if (bucket < this.nextSplit) {
             bucket = h & ((mod << 1) - 1);
         }
-        return bucket;
+        return (int) bucket;
     }
 
     private void saveDirectory() {
@@ -77,90 +77,111 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
     }
 
     public void insert(T record) {
-        String key = this.keyExtractor.apply(record);
+        long key = this.keyExtractor.apply(record);
         int bucket = this.bucketForKey(key);
         this.insertIntoBucket(bucket, record);
     }
 
-    public T findByKey(String key) {
+    public T findByKey(T record) {
+        long key = this.keyExtractor.apply(record);
         int bucket = this.bucketForKey(key);
+
         int head = this.bucketPointers.get(bucket);
         if (head == -1) {
             return null;
         }
 
+
         int idx = head;
         HeapFile<T> currentFile = this.heapFilePrimary;
-
         while (idx != -1) {
             Block<T> block = currentFile.getBlock(idx);
+
             for (int r = 0; r < block.getBlockFactor(); r++) {
                 IRecord<T> rec = block.getRecordAt(r);
                 if (rec != null) {
                     T cand = (T) rec;
-                    if (key.equals(this.keyExtractor.apply(cand))) {
+
+                    // real equality check — no hash comparison
+                    if (record.equals(cand)) {
                         return cand.createCopy();
                     }
                 }
             }
 
             idx = block.getNextBlockIndex();
-            currentFile = (idx != -1 && idx < this.heapFilePrimary.getTotalBlocks()) ?
-                    this.heapFilePrimary : this.heapFileOverflow;
+            currentFile = (idx != -1 && idx < this.heapFilePrimary.getTotalBlocks())
+                    ? this.heapFilePrimary
+                    : this.heapFileOverflow;
         }
+
         return null;
     }
 
-    public boolean deleteByKey(String key) {
+    public boolean deleteByKey(T record) {
+        long key = this.keyExtractor.apply(record);
         int bucket = this.bucketForKey(key);
+
         int head = this.bucketPointers.get(bucket);
         if (head == -1) {
             return false;
         }
+
         int idx = head;
+
         while (idx != -1) {
             Block<T> block = this.heapFilePrimary.getBlock(idx);
-            // find record
+
             IRecord<T> toRemove = null;
+            int removeIndex = -1;
+
             for (int r = 0; r < block.getBlockFactor(); r++) {
                 IRecord<T> rec = block.getRecordAt(r);
                 if (rec != null) {
                     T cand = (T) rec;
-                    if (key.equals(this.keyExtractor.apply(cand))) {
+
+                    // equality check based on record.equals()
+                    if (record.equals(cand)) {
                         toRemove = rec;
+                        removeIndex = r;
                         break;
                     }
                 }
             }
+
             if (toRemove != null) {
-                block.removeRecord((T) toRemove); // compacts block
-                // if block empty and not head -> unlink and optionally free
+                block.removeRecord(record);
+
                 if (block.getValidCount() == 0) {
                     int prev = block.getPreviousBlockIndex();
                     int next = block.getNextBlockIndex();
-                    if (prev != -1) {
+
+                    if (prev != -1) {//TODO prečo nemazať cez HeapFIle?
                         Block<T> prevB = this.heapFilePrimary.getBlock(prev);
                         prevB.setNextBlockIndex(next);
                         this.heapFilePrimary.writeBlockToFile(prevB, prev);
                     } else {
-                        // block was head of chain
                         this.bucketPointers.set(bucket, next);
                     }
+
                     if (next != -1) {
                         Block<T> nextB = this.heapFilePrimary.getBlock(next);
                         nextB.setPreviousBlockIndex(prev);
                         this.heapFilePrimary.writeBlockToFile(nextB, next);
                     }
-                    // optionally reclaim physical block - left for HeapFile
+
                 } else {
                     this.heapFilePrimary.writeBlockToFile(block, idx);
                 }
+
                 this.saveDirectory();
                 this.heapFilePrimary.trimTrailingEmptyBlocks();
                 return true;
             }
+
             idx = block.getNextBlockIndex();
         }
+
         return false;
     }
 
@@ -267,9 +288,9 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
 
         // redistribute records using i+1 bits
         for (T rec : all) {
-            String k = this.keyExtractor.apply(rec);
-            int h = Math.abs(k.hashCode());
-            int target = h & ((1 << (this.i + 1)) - 1); // mod 2^(i+1)
+            long k = this.keyExtractor.apply(rec);
+            long h = k & 0x7FFFFFFFFFFFFFFFL;
+            long target = h & ((1 << (this.i + 1)) - 1); // mod 2^(i+1)
             if (target == bucketToSplit) {
                 this.insertIntoBucketNoSplit(bucketToSplit, rec);
             } else {
@@ -317,5 +338,9 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
 
     public int getNumberOfBuckets() {
         return this.bucketPointers.size();
+    }
+
+    public Block<T> getBucket(int i) {
+        return this.heapFilePrimary.getBlock(this.bucketPointers.get(i));
     }
 }

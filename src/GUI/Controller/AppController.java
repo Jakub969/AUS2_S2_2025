@@ -2,6 +2,7 @@ package GUI.Controller;
 
 import DS.HeapFile;
 import DS.Block;
+import DS.LinearHashFile;
 import Tester.Osoba;
 
 import java.util.ArrayList;
@@ -9,33 +10,30 @@ import java.util.List;
 
 public class AppController {
 
-    private final HeapFile<Osoba> heapFile;
+    private final LinearHashFile<Osoba> hashFile;
 
-    public AppController(HeapFile<Osoba> heapFile) {
-        this.heapFile = heapFile;
+    public AppController(LinearHashFile<Osoba> hashFile) {
+        this.hashFile = hashFile;
     }
 
-    public boolean insertOsoba(Osoba osoba) {
-        int blockIndex = this.heapFile.insertRecord(osoba);
-        return blockIndex >= 0;
+    public void insertOsoba(Osoba osoba) {
+        this.hashFile.insert(osoba);
     }
 
-    public boolean deleteOsoba(int index, String uuid) {
-        Osoba dummy = Osoba.fromUUID(uuid);
-        return this.heapFile.deleteRecord(index, dummy);
+    public void deleteOsoba(Osoba osoba) {
+        this.hashFile.deleteByKey(osoba);
     }
 
-    public Osoba findOsoba(int index, String uuid) {
-        Osoba dummy = Osoba.fromUUID(uuid);
-        return this.heapFile.findRecord(index, dummy);
+    public Osoba findOsoba(Osoba osoba) {
+        return this.hashFile.findByKey(osoba);
     }
 
     public List<Block<Osoba>> loadBlocks() {
-        int total = this.heapFile.getTotalBlocks();
+        int total = this.hashFile.getNumberOfBuckets();
         List<Block<Osoba>> list = new ArrayList<>();
-
         for (int i = 0; i < total; i++) {
-            list.add(this.heapFile.getBlock(i));
+            Block<Osoba> block = this.hashFile.getBucket(i);
+            list.add(block);
         }
         return list;
     }
