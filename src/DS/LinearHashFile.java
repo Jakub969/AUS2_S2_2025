@@ -82,7 +82,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         this.insertIntoBucket(bucket, record);
     }
 
-    public T findByKey(T record) {
+    public T find(T record) {
         long key = this.keyExtractor.apply(record);
         int bucket = this.bucketForKey(key);
         int headBlockIndex = this.bucketPointers.get(bucket);
@@ -112,7 +112,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         return null;
     }
 
-    public boolean deleteByKey(T record) {
+    public boolean delete(T record) {
         long key = this.keyExtractor.apply(record);
         int bucket = this.bucketForKey(key);
         int headBlockIndex = this.bucketPointers.get(bucket);

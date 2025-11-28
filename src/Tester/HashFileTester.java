@@ -64,7 +64,7 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
         }
 
         IndexedRecord<T> entry = this.inserted.remove(this.random.nextInt(this.inserted.size()));
-        boolean removed = this.hashFile.deleteByKey(entry.record);
+        boolean removed = this.hashFile.delete(entry.record);
 
         boolean expectedRemoved = (this.expectedRecords.remove(entry.key) != null);
 
@@ -84,7 +84,7 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
         }
 
         IndexedRecord<T> entry = this.inserted.get(this.random.nextInt(this.inserted.size()));
-        T fromHashFile = this.hashFile.findByKey(entry.record);
+        T fromHashFile = this.hashFile.find(entry.record);
 
         T expected = this.expectedRecords.get(entry.key);
         boolean expectedFound = (expected != null);
@@ -111,7 +111,7 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
             return;
         }
 
-        T fromHashFile = this.hashFile.findByKey(record);
+        T fromHashFile = this.hashFile.find(record);
 
         if (fromHashFile != null) {
             throw new IllegalStateException("Found non-existent record with key: " + key);
@@ -163,7 +163,7 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
         // Check that all expected records are found in hash file
         for (Map.Entry<Long, T> entry : this.expectedRecords.entrySet()) {
             T expectedRecord = entry.getValue();
-            T foundRecord = this.hashFile.findByKey(expectedRecord);
+            T foundRecord = this.hashFile.find(expectedRecord);
 
             if (foundRecord == null) {
                 throw new IllegalStateException("Validation failed: Record with key " + entry.getKey() + " not found in hash file");

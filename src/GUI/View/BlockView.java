@@ -1,48 +1,61 @@
 package GUI.View;
 
 import DS.Block;
-import Tester.Osoba;
-
+import DS.LinearHashFile;
 import javax.swing.*;
 import java.awt.*;
 import java.util.List;
 
-public class BlockView extends JPanel {
+public class BlockView extends JFrame {
+    private final LinearHashFile<?> linearHashFile;
 
-    public BlockView() {
-        this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+    public BlockView(LinearHashFile<?> linearHashFile) {
+        this.linearHashFile = linearHashFile;
+        this.initializeUI();
     }
 
-    public void updateBlocks(List<Block<Osoba>> blocks) {
+    private void initializeUI() {
+        this.setTitle("Block Information");
+        this.setSize(400, 300);
+        this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        this.setLayout(new BorderLayout());
 
-        this.removeAll();
+        JTextArea textArea = new JTextArea();
+        textArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        this.add(scrollPane, BorderLayout.CENTER);
 
-        for (int i = 0; i < blocks.size(); i++) {
-            Block<Osoba> block = blocks.get(i);
+        JButton refreshButton = new JButton("Refresh");
+        refreshButton.addActionListener(e -> this.displayBlockInfo(textArea));
+        this.add(refreshButton, BorderLayout.SOUTH);
 
-            JPanel blockPanel = new JPanel(new BorderLayout());
-            blockPanel.setBorder(BorderFactory.createTitledBorder("Block " + i));
+        this.displayBlockInfo(textArea);
+    }
 
-            StringBuilder header = new StringBuilder();
-            header.append("blockFactor: ").append(block.getBlockFactor()).append("\n");
-            header.append("validCount: ").append(block.getValidCount()).append("\n");
-            header.append("nextBlockIndex: ").append(block.getNextBlockIndex()).append("\n");
-            header.append("previousBlockIndex: ").append(block.getPreviousBlockIndex()).append("\n");
-            header.append("Records:\n");
+    private void displayBlockInfo(JTextArea textArea) {
+        StringBuilder info = new StringBuilder();
+        int numberOfBuckets = this.linearHashFile.getNumberOfBuckets();
+        info.append("Number of Buckets: ").append(numberOfBuckets).append("\n\n");
 
-            for (int j = 0; j < block.getBlockFactor(); j++) {
-                var rec = block.getRecordAt(j);
-                header.append("[").append(j).append("] ").append(rec).append("\n");
+        for (int i = 0; i < numberOfBuckets; i++) {
+            int bucketPointer = this.linearHashFile.getBucketPointer(i);
+            info.append("Bucket ").append(i).append(":\n");
+            if (bucketPointer == -1) {
+                info.append("  - Empty\n");
+            } else {
+                Block<?> block = this.linearHashFile.getBucket(i);
+                info.append("  - Block Index: ").append(bucketPointer).append("\n");
+                info.append("  - Valid Records: ").append(block.getValidCount()).append("\n");
+                info.append("  - Next Block Index: ").append(block.getNextBlockIndex()).append("\n");
+                info.append("  - Previous Block Index: ").append(block.getPreviousBlockIndex()).append("\n");
+                info.append("  - Records:\n");
+                for (int j = 0; j < block.getValidCount(); j++) {
+                    info.append("    - ").append(block.getRecordAt(j).toString()).append("\n");
+                }
             }
-
-            JTextArea textArea = new JTextArea(header.toString());
-            textArea.setEditable(false);
-
-            blockPanel.add(new JScrollPane(textArea), BorderLayout.CENTER);
-            this.add(blockPanel);
+            info.append("\n");
         }
 
-        this.revalidate();
-        this.repaint();
+        textArea.setText(info.toString());
     }
 }
