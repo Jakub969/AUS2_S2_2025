@@ -85,7 +85,7 @@ public class HeapFileTester<T extends IRecord<T>> {
         if (!this.heapFile.getRecordClass().equals(Osoba.class)) {
             throw new IllegalStateException("This tester only supports Osoba");
         }
-        return (T) Osoba.generateRandom();
+        return (T) Osoba.generateRandom(System.currentTimeMillis());
     }
 
     public void performRandomOperations(int count) {

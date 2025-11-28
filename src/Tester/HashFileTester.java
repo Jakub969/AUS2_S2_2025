@@ -24,10 +24,12 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
     private final Random random;
     private final List<IndexedRecord<T>> inserted;
     private final Map<Long, T> expectedRecords; // Expected state: key -> record
+    private final long seed;
 
     public HashFileTester(LinearHashFile<T> hashFile, Function<T, Long> keyExtractor, long seed) {
         this.hashFile = hashFile;
         this.keyExtractor = keyExtractor;
+        this.seed = seed;
         this.random = new Random(seed);
         this.inserted = new ArrayList<>();
         this.expectedRecords = new HashMap<>();
@@ -93,7 +95,7 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
                     ", expected " + expectedFound + " for key: " + entry.key);
         }
 
-        if (hashFileFound && !fromHashFile.equals(expected)) {
+        if (hashFileFound && !fromHashFile.isEqual(expected)) {
             throw new IllegalStateException("Record content mismatch for key: " + entry.key);
         }
 
@@ -152,7 +154,7 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
         if (!this.hashFile.getPrimaryFile().getRecordClass().equals(Osoba.class)) {
             throw new IllegalStateException("This tester only supports Osoba");
         }
-        return (T) Osoba.generateRandom();
+        return (T) Osoba.generateRandom(this.seed);
     }
 
     private void validateState() {
@@ -203,7 +205,8 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
 
         for (int i = 0; i < totalBuckets; i++) {
             int recordsInBucket = this.countRecordsInBucket(i);
-            System.out.println("Bucket " + i + ": " + recordsInBucket + " records");
+            int bucketPointer = this.hashFile.getBucketPointer(i);
+            System.out.println("Bucket " + i + " (Bucket pointer: " + bucketPointer + "): " + recordsInBucket + " records");
         }
     }
 

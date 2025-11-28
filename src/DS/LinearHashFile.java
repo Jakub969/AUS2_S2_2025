@@ -121,28 +121,40 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
             return false;
         }
 
-        // Try to delete from primary file chain
+        boolean deleted = false;
+
         if (this.primaryFile.deleteFromChain(headBlockIndex, record)) {
-            this.handlePostDeletionCleanup(bucket, headBlockIndex);
-            return true;
-        }
+            deleted = true;
+        } else {
+            int currentIndex = headBlockIndex;
+            while (currentIndex != -1) {
+                Block<T> block = this.primaryFile.getBlock(currentIndex);
+                int nextIndex = block.getNextBlockIndex();
 
-        // Try to delete from overflow file by following chain from primary
-        int currentIndex = headBlockIndex;
-        while (currentIndex != -1) {
-            Block<T> block = this.primaryFile.getBlock(currentIndex);
-            int nextIndex = block.getNextBlockIndex();
-            if (nextIndex != -1 && nextIndex >= this.primaryFile.getTotalBlocks()) {
-                if (this.overflowFile.deleteFromChain(nextIndex, record)) {
-                    this.handlePostDeletionCleanup(bucket, headBlockIndex);
-                    return true;
+                if (nextIndex != -1 && nextIndex >= this.primaryFile.getTotalBlocks()) {
+                    if (this.overflowFile.deleteFromChain(nextIndex, record)) {
+                        deleted = true;
+                        break;
+                    }
                 }
+
+                currentIndex = nextIndex;
             }
-            currentIndex = nextIndex;
         }
 
-        return false;
+        if (!deleted) {
+            return false;
+        }
+
+        this.handlePostDeletionCleanup(bucket, headBlockIndex);
+
+        // Now it is safe to trim blocks
+        this.primaryFile.trimTrailingEmptyBlocks();
+        this.overflowFile.trimTrailingEmptyBlocks();
+
+        return true;
     }
+
 
     private void handlePostDeletionCleanup(int bucket, int headBlockIndex) {
         // Check if head block became empty and update bucket pointer if needed
@@ -184,7 +196,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         if (headBlockIndex == -1) {
             // First record in bucket - insert into primary file
             HeapFile.BlockInsertResult result =
-                    this.primaryFile.insertRecordWithMetadata(record, -1, -1);
+                    this.primaryFile.insertRecordAsNewBlock(record, -1, -1);
             this.bucketPointers.set(bucket, result.blockIndex);
             this.saveDirectory();
             return;
@@ -224,7 +236,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
 
         // Insert new block in overflow file
         HeapFile.BlockInsertResult result =
-                this.overflowFile.insertRecordWithMetadata(record, -1, lastBlockIndex);
+                this.overflowFile.insertRecordAsNewBlock(record, -1, lastBlockIndex);
         int newBlockIndex = result.blockIndex;
 
         // Update previous block's next pointer
@@ -378,9 +390,17 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         int currentIndex = headBlockIndex;
         while (currentIndex != -1) {
             Block<T> block = this.getFileForBlockIndex(currentIndex).getBlock(currentIndex);
+            System.out.println("Bucket: " + bucket + ", Block Index: " + currentIndex + ", Valid Records: " + block.getValidCount());
+            for (int i = 0; i < block.getValidCount(); i++) {
+                System.out.println(block.getRecordAt(i).toString());
+            }
             count += block.getValidCount();
             currentIndex = this.getFileForBlockIndex(currentIndex).getNextBlockIndex(currentIndex);
         }
         return count;
+    }
+
+    public int getBucketPointer(int i) {
+        return this.bucketPointers.get(i);
     }
 }

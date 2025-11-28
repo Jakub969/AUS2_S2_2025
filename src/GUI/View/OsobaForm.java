@@ -85,7 +85,7 @@ public class OsobaForm extends JPanel {
         });
 
         genBtn.addActionListener(e -> {
-            Osoba rand = Osoba.generateRandom();
+            Osoba rand = Osoba.generateRandom(System.currentTimeMillis());
             this.menoField.setText(rand.getMeno());
             this.priezviskoField.setText(rand.getPriezvisko());
             this.uuidField.setText(rand.getUUID());
@@ -96,7 +96,7 @@ public class OsobaForm extends JPanel {
             try {
                 int count = Integer.parseInt(this.bulkGenerateField.getText());
                 for (int i = 0; i < count; i++) {
-                    Osoba rand = Osoba.generateRandom();
+                    Osoba rand = Osoba.generateRandom(System.currentTimeMillis());
                     controller.insertOsoba(rand);
                 }
                 onUpdate.run();

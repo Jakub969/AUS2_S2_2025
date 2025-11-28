@@ -75,6 +75,44 @@ public class HeapFile<T extends IRecord<T>> {
         return new BlockInsertResult(blockIndex, block);
     }
 
+    public BlockInsertResult insertRecordAsNewBlock(T record, int nextBlock, int prevBlock) {
+        int blockIndex;
+        // Použiť iba emptyBlocks (bloky úplne prázdne) alebo nový blok na konci
+        if (!this.emptyBlocks.isEmpty()) {
+            blockIndex = this.emptyBlocks.removeFirst();
+        } else {
+            blockIndex = this.totalBlocks;
+        }
+
+        Block<T> block;
+        if (blockIndex < this.totalBlocks) {
+            // bezpečné: ide o block z emptyBlocks, teda prázdny
+            block = this.getBlock(blockIndex);
+        } else {
+            block = new Block<>(this.recordClass, this.blockSize);
+        }
+
+        block.addRecord(record);
+
+        // Aktualizovať zoznamy rovnakým spôsobom ako updateListsAfterInsert
+        this.updateListsAfterInsert(blockIndex, block);
+
+        // Nastaviť ukazovatele a zapísať
+        block.setNextBlockIndex(nextBlock);
+        block.setPreviousBlockIndex(prevBlock);
+        this.writeBlockToFile(block, blockIndex);
+
+        if (blockIndex == this.totalBlocks) {
+            this.totalBlocks++;
+        }
+        this.totalRecords++;
+
+        this.saveLists();
+        this.saveHeader();
+
+        return new BlockInsertResult(blockIndex, block);
+    }
+
     public void updateChainPointers(int blockIndex, int nextBlock, int prevBlock) {
         Block<T> block = this.getBlock(blockIndex);
         block.setNextBlockIndex(nextBlock);
@@ -86,7 +124,6 @@ public class HeapFile<T extends IRecord<T>> {
         this.totalRecords--;
         this.updateListsAfterDelete(blockIndex, block);
         this.writeBlockToFile(block, blockIndex);
-        this.trimTrailingEmptyBlocks();
         this.saveLists();
         this.saveHeader();
     }
@@ -174,6 +211,7 @@ public class HeapFile<T extends IRecord<T>> {
             this.totalBlocks--;
             this.emptyBlocks.remove(Integer.valueOf(this.totalBlocks));
         }
+        this.saveHeader();
     }
 
     public void writeBlockToFile(Block<T> block, int blockIndex) {
