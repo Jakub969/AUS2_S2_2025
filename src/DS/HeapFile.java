@@ -82,26 +82,13 @@ public class HeapFile<T extends IRecord<T>> {
         this.writeBlockToFile(block, blockIndex);
     }
 
-    public boolean deleteRecord(int index, T record) {
-        if (index < 0 || index >= this.totalBlocks) {
-            return false;
-        }
-
-        Block<T> block = this.getBlock(index);
-        T removed = block.removeRecord(record);
-
-        if (removed == null) {
-            return false;
-        }
-
+    private void applyDeleteMetadata(int blockIndex, Block<T> block) {
         this.totalRecords--;
-        this.updateListsAfterDelete(index, block);
-        this.writeBlockToFile(block, index);
+        this.updateListsAfterDelete(blockIndex, block);
+        this.writeBlockToFile(block, blockIndex);
         this.trimTrailingEmptyBlocks();
-
         this.saveLists();
         this.saveHeader();
-        return true;
     }
 
 
@@ -136,11 +123,13 @@ public class HeapFile<T extends IRecord<T>> {
             T removed = block.removeRecord(record);
 
             if (removed != null) {
-                this.writeBlockToFile(block, currentIndex);
+                this.applyDeleteMetadata(currentIndex, block);
                 return true;
             }
+
             currentIndex = block.getNextBlockIndex();
         }
+
         return false;
     }
 

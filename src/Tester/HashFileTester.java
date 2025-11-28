@@ -139,6 +139,8 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
             }
 
             this.printStatistics();
+
+            this.printBucketDistribution();
         }
 
         System.out.println("\n=== FINAL VALIDATION ===");
@@ -165,7 +167,7 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
                 throw new IllegalStateException("Validation failed: Record with key " + entry.getKey() + " not found in hash file");
             }
 
-            if (!foundRecord.equals(expectedRecord)) {
+            if (!foundRecord.isEqual(expectedRecord)) {
                 throw new IllegalStateException("Validation failed: Record with key " + entry.getKey() + " content mismatch");
             }
         }
@@ -213,6 +215,7 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
             // Try to traverse the chain and count records
             // This depends on your LinearHashFile implementation details
             // You might need to add a method like getBucketRecordCount(int bucket) to LinearHashFile
+            count = this.hashFile.getBucketRecordCount(bucket);
         } catch (Exception e) {
             // If we can't count, return -1
             return -1;

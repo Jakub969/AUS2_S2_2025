@@ -367,4 +367,20 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
     public HeapFile<T> getOverflowFile() {
         return this.overflowFile;
     }
+
+    public int getBucketRecordCount(int bucket) {
+        int count = 0;
+        int headBlockIndex = this.bucketPointers.get(bucket);
+        if (headBlockIndex == -1) {
+            return 0;
+        }
+
+        int currentIndex = headBlockIndex;
+        while (currentIndex != -1) {
+            Block<T> block = this.getFileForBlockIndex(currentIndex).getBlock(currentIndex);
+            count += block.getValidCount();
+            currentIndex = this.getFileForBlockIndex(currentIndex).getNextBlockIndex(currentIndex);
+        }
+        return count;
+    }
 }

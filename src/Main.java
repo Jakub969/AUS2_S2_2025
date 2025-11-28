@@ -29,8 +29,8 @@ public class Main {
                 Osoba.class,
                 4, // initial buckets
                 Osoba::getHash, // key extractor
-                "primary_data", // primary file name
-                "overflow_data", // overflow file name
+                "primary_data.bin", // primary file name
+                "overflow_data.bin", // overflow file name
                 512, // primary block size
                 256  // overflow block size
         );

@@ -58,7 +58,7 @@ public class HeapFileTester<T extends IRecord<T>> {
     }
 
     public void removeRecord(IndexedRecord<T> entry) {
-        boolean removedHeap = this.heapFile.deleteRecord(entry.blockIndex, entry.record);
+        boolean removedHeap = this.heapFile.deleteFromChain(entry.blockIndex, entry.record);
 
         boolean removedExpected = this.expectedBlocks.get(entry.blockIndex).removeIf(r -> r.isEqual(entry.record));
 
