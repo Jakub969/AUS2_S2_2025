@@ -43,12 +43,11 @@ public class HeapFile<T extends IRecord<T>> {
         } else if (!this.emptyBlocks.isEmpty()) {
             this.emptyBlocks.remove(Integer.valueOf(blockindex));
         }
-
-        if (blockindex > this.totalBlocks) {
-            //block = new Block<>(this.recordClass, this.blockSize);
-            return new BlockInsertResult(-1, null); // Indikácia, že blok je plný a nie je možné vložiť záznam
+        Block<T> block = this.getBlock(blockindex);
+        if (block. getValidCount() == block.getBlockFactor()) {
+            return new BlockInsertResult(-1, block); // Indikácia, že blok je plný a nie je možné vložiť záznam
         }
-        return new BlockInsertResult(blockindex, this.getBlock(blockindex));
+        return new BlockInsertResult(blockindex, block);
     }
 
     public BlockInsertResult insertRecordWithMetadata(T record,int blockIndex, int nextBlock, int prevBlock) {
@@ -137,7 +136,7 @@ public class HeapFile<T extends IRecord<T>> {
         int currentIndex = startBlockIndex;
 
         while (currentIndex != -1) {
-            Block<T> block = this.getBlock(currentIndex);
+            Block<T> block = this.getBlock(startBlockIndex);
             T found = block.getCopyOfRecord(recordTemplate);
             if (found != null) {
                 return found;

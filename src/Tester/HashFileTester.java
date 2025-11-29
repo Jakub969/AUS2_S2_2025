@@ -125,7 +125,7 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
         for (int i = 0; i < count; i++) {
             System.out.println("\n--- Operation " + (i + 1) + " ---");
 
-            int op = 0;//this.random.nextInt(4); // 0=insert, 1=delete, 2=find, 3=find_non_existent
+            int op = this.random.nextInt(4); // 0=insert, 1=delete, 2=find, 3=find_non_existent
 
             switch (op) {
                 case 0 -> {

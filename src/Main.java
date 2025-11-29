@@ -22,11 +22,7 @@ public class Main {
                 return;
             }
         }*/
-        LinearHashFile<Osoba> hashFile = new LinearHashFile<>(Osoba.class, 4, Osoba::getHash, "primary_data.bin", "overflow_data.bin", 512, 256);
-        //AppController controller = new AppController(hashFile);
-        MainWindow<Osoba> mainWindow = new MainWindow<>(hashFile);
-        mainWindow.setVisible(true);
-        /*LinearHashFile<Osoba> hashFile = new LinearHashFile<>(
+        LinearHashFile<Osoba> hashFile = new LinearHashFile<>(
                 Osoba.class,
                 4, // initial buckets
                 Osoba::getHash, // key extractor
@@ -37,16 +33,18 @@ public class Main {
         );
 
         // Create tester
-        HashFileTester<Osoba> tester = new HashFileTester<>(
+        /*HashFileTester<Osoba> tester = new HashFileTester<>(
                 hashFile,
                 Osoba::getHash,
                 12345L // seed
         );
 
         // Perform random operations
-        tester.performRandomOperations(10);
+        tester.performRandomOperations(150);
 
         // Print final bucket distribution
         tester.printBucketDistribution();*/
+        MainWindow<Osoba> mainWindow = new MainWindow<>(hashFile);
+        mainWindow.setVisible(true);
     }
 }

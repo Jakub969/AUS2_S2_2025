@@ -92,7 +92,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         }
 
         // Search in primary file chain
-        T found = this.primaryFile.findInChain(headBlockIndex, record);
+        T found = this.primaryFile.findRecord(headBlockIndex, record);
         if (found != null) {
             return found;
         }
@@ -102,7 +102,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         while (currentIndex != -1) {
             Block<T> block = this.primaryFile.getBlock(currentIndex);
             int nextIndex = block.getNextBlockIndex();
-            if (nextIndex != -1 && nextIndex >= this.primaryFile.getTotalBlocks()) {
+            if (nextIndex != -1) {
                 // This points to overflow file
                 return this.overflowFile.findInChain(nextIndex, record);
             }
@@ -203,8 +203,10 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         HeapFile.BlockInsertResult result = this.primaryFile.insertRecordWithMetadata(record, headBlockIndex, -1, -1);
 
         if (result.blockIndex == -1)  {
-            HeapFile.BlockInsertResult newResult = this.overflowFile.insertRecordWithMetadata(record,headBlockIndex, -1, -1);
-            if (newResult.blockIndex == -1)  {
+            if (result.block.getNextBlockIndex() != -1) {
+                HeapFile.BlockInsertResult newResult = this.overflowFile.insertRecordWithMetadata(record,result.block.getNextBlockIndex(), -1, result.blockIndex);
+            }
+            else {
                 // No space - add new overflow block
                 this.addNewOverflowBlock(headBlockIndex, record);
             }
