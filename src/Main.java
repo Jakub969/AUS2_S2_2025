@@ -1,7 +1,9 @@
+import DS.HeapFile;
 import DS.LinearHashFile;
 import GUI.Controller.AppController;
 import GUI.View.MainWindow;
 import Tester.HashFileTester;
+import Tester.HeapFileTester;
 import Tester.Osoba;
 
 public class Main {
@@ -33,7 +35,7 @@ public class Main {
         );
 
         // Create tester
-        /*HashFileTester<Osoba> tester = new HashFileTester<>(
+        HashFileTester<Osoba> tester = new HashFileTester<>(
                 hashFile,
                 Osoba::getHash,
                 12345L // seed
@@ -43,8 +45,8 @@ public class Main {
         tester.performRandomOperations(150);
 
         // Print final bucket distribution
-        tester.printBucketDistribution();*/
-        MainWindow<Osoba> mainWindow = new MainWindow<>(hashFile);
-        mainWindow.setVisible(true);
+        tester.printBucketDistribution();
+        /*MainWindow<Osoba> mainWindow = new MainWindow<>(hashFile);
+        mainWindow.setVisible(true);*/
     }
 }

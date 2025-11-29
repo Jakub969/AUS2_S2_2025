@@ -47,7 +47,6 @@ public class BlockView extends JFrame {
                 info.append("  - Block Index: ").append(bucketPointer).append("\n");
                 info.append("  - Valid Records: ").append(block.getValidCount()).append("\n");
                 info.append("  - Next Block Index: ").append(block.getNextBlockIndex()).append("\n");
-                info.append("  - Previous Block Index: ").append(block.getPreviousBlockIndex()).append("\n");
                 info.append("  - Records:\n");
                 for (int j = 0; j < block.getValidCount(); j++) {
                     info.append("    - ").append(block.getRecordAt(j).toString()).append("\n");

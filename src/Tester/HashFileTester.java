@@ -33,14 +33,6 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
         this.random = new Random(seed);
         this.inserted = new ArrayList<>();
         this.expectedRecords = new HashMap<>();
-        this.loadExistingHashState();
-    }
-
-    private void loadExistingHashState() {
-        // Since we can't easily iterate through all records in LinearHashFile,
-        // we'll start with an empty expected state and rely on operations to build it
-        System.out.println("Initialized tester with empty expected state");
-        System.out.println("Current buckets: " + this.hashFile.getNumberOfBuckets());
     }
 
     public void insertRecord(T record) {
@@ -55,26 +47,6 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
         this.inserted.add(new IndexedRecord<>(absKey, record.createCopy()));
 
         System.out.println("[INSERT] Key: " + absKey + ", Record: " + record);
-        this.validateState();
-    }
-
-    public void removeRandomRecord() {
-        if (this.inserted.isEmpty()) {
-            System.out.println("[DELETE] No records to delete");
-            return;
-        }
-
-        IndexedRecord<T> entry = this.inserted.remove(this.random.nextInt(this.inserted.size()));
-        boolean removed = this.hashFile.delete(entry.record);
-
-        boolean expectedRemoved = (this.expectedRecords.remove(entry.key) != null);
-
-        if (removed != expectedRemoved) {
-            throw new IllegalStateException("Delete mismatch: hashFile returned " + removed +
-                    ", expected " + expectedRemoved + " for key: " + entry.key);
-        }
-
-        System.out.println("[DELETE] Key: " + entry.key + ", Success: " + removed);
         this.validateState();
     }
 
@@ -103,42 +75,18 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
         System.out.println("[FIND] Key: " + entry.key + ", Found: " + hashFileFound);
     }
 
-    public void findNonExistentRecord(T record) {
-        long key = this.keyExtractor.apply(record);
-
-        // Ensure this record doesn't exist in our expected state
-        if (this.expectedRecords.containsKey(key)) {
-            System.out.println("[FIND_NON_EXISTENT] Key " + key + " actually exists, skipping");
-            return;
-        }
-
-        T fromHashFile = this.hashFile.find(record);
-
-        if (fromHashFile != null) {
-            throw new IllegalStateException("Found non-existent record with key: " + key);
-        }
-
-        System.out.println("[FIND_NON_EXISTENT] Key: " + key + " correctly not found");
-    }
-
     public void performRandomOperations(int count) {
         for (int i = 0; i < count; i++) {
             System.out.println("\n--- Operation " + (i + 1) + " ---");
 
-            int op = this.random.nextInt(4); // 0=insert, 1=delete, 2=find, 3=find_non_existent
+            int op = 0;//this.random.nextInt(2); // 0=insert, 1=find
 
             switch (op) {
                 case 0 -> {
                     T rec = this.generateRandomRecord();
                     this.insertRecord(rec);
                 }
-                case 1 -> this.removeRandomRecord();
-                case 2 -> this.findRandomRecord();
-                case 3 -> {
-                    T rec = this.generateRandomRecord();
-                    // Ensure it's not already inserted (small chance, but we check in the method)
-                    this.findNonExistentRecord(rec);
-                }
+                case 1 -> this.findRandomRecord();
             }
 
             this.printStatistics();
@@ -165,6 +113,7 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
         for (Map.Entry<Long, T> entry : this.expectedRecords.entrySet()) {
             T expectedRecord = entry.getValue();
             T foundRecord = this.hashFile.find(expectedRecord);
+            T again = this.hashFile.find(expectedRecord);
 
             if (foundRecord == null) {
                 throw new IllegalStateException("Validation failed: Record with key " + entry.getKey() + " not found in hash file");

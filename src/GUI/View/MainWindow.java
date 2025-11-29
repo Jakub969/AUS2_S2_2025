@@ -17,7 +17,6 @@ public class MainWindow<T extends IRecord<T> & IHashable> extends JFrame {
     private JTextArea outputArea;
     private JTextField insertField;
     private JTextField findField;
-    private JTextField deleteField;
 
     public MainWindow(LinearHashFile<T> file) {
         this.file = file;
@@ -54,18 +53,8 @@ public class MainWindow<T extends IRecord<T> & IHashable> extends JFrame {
         findPanel.add(this.findField);
         findPanel.add(findBtn);
 
-        // ---- DELETE ----
-        JPanel deletePanel = new JPanel(new FlowLayout());
-        this.deleteField = new JTextField(20);
-        JButton deleteBtn = new JButton("Delete");
-        deleteBtn.addActionListener(e -> this.deleteRecord());
-        deletePanel.add(new JLabel("Delete key:"));
-        deletePanel.add(this.deleteField);
-        deletePanel.add(deleteBtn);
-
         controlPanel.add(insertPanel);
         controlPanel.add(findPanel);
-        controlPanel.add(deletePanel);
 
         this.add(controlPanel, BorderLayout.NORTH);
 
@@ -122,31 +111,6 @@ public class MainWindow<T extends IRecord<T> & IHashable> extends JFrame {
             }
         } catch (Exception e) {
             this.outputArea.setText("Find failed: " + e.getMessage());
-        }
-    }
-
-    // =============================
-    // DELETE
-    // =============================
-    private void deleteRecord() {
-        String key = this.deleteField.getText().trim();
-        if (key.isEmpty()) {
-            this.outputArea.setText("Empty key.");
-            return;
-        }
-
-        try {
-            T probe = this.createRecordFromString(key);
-
-            boolean deleted = this.file.delete(probe);
-            if (deleted) {
-                this.outputArea.setText("Record deleted.\n\n");
-                this.showBuckets();
-            } else {
-                this.outputArea.setText("Record not found.");
-            }
-        } catch (Exception e) {
-            this.outputArea.setText("Delete failed: " + e.getMessage());
         }
     }
 

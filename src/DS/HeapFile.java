@@ -14,7 +14,6 @@ public class HeapFile<T extends IRecord<T>> {
     private final int blockSize;
     private final LinkedList<Integer> emptyBlocks;
     private final LinkedList<Integer> partiallyEmptyBlocks;
-    private final List<Integer> blockValidCounts;
     private int totalBlocks;
     private int totalRecords;
 
@@ -27,7 +26,6 @@ public class HeapFile<T extends IRecord<T>> {
         this.blockSize = blockSize;
         this.emptyBlocks = new LinkedList<>();
         this.partiallyEmptyBlocks = new LinkedList<>();
-        this.blockValidCounts = new LinkedList<>();
         if (this.dataFile.exists()) {
             this.loadLists();
             this.loadHeader();
@@ -37,39 +35,61 @@ public class HeapFile<T extends IRecord<T>> {
         }
     }
 
-    public BlockInsertResult insertRecord(T record, int blockindex) {
+    public int insertRecord(T record) {
+        int blockIndex;
+
         if (!this.partiallyEmptyBlocks.isEmpty()) {
-            this.partiallyEmptyBlocks.remove(Integer.valueOf(blockindex));
+            blockIndex = this.partiallyEmptyBlocks.removeFirst();
         } else if (!this.emptyBlocks.isEmpty()) {
-            this.emptyBlocks.remove(Integer.valueOf(blockindex));
+            blockIndex = this.emptyBlocks.removeFirst();
+        } else {
+            blockIndex = this.totalBlocks;
         }
-        Block<T> block = this.getBlock(blockindex);
+
+        Block<T> block;
+        if (blockIndex < this.totalBlocks) {
+            block = this.getBlock(blockIndex);
+        } else {
+            block = new Block<>(this.recordClass, this.blockSize);
+        }
+
+        block.addRecord(record);
+        this.updateListsAfterInsert(blockIndex, block);
+        this.writeBlockToFile(block, blockIndex);
+        if (blockIndex == this.totalBlocks) {
+            this.totalBlocks++;
+        }
+        this.totalRecords++;
+
+        this.saveLists();
+        this.saveHeader();
+        return blockIndex;
+    }
+
+    public BlockInsertResult insertRecordWithMetadata(T record,int blockIndex, int nextBlock) {
+        if (!this.partiallyEmptyBlocks.isEmpty()) {
+            this.partiallyEmptyBlocks.remove(Integer.valueOf(blockIndex));
+        } else if (!this.emptyBlocks.isEmpty()) {
+            this.emptyBlocks.remove(Integer.valueOf(blockIndex));
+        }
+        Block<T> block = this.getBlock(blockIndex);
         if (block. getValidCount() == block.getBlockFactor()) {
             return new BlockInsertResult(-1, block); // Indikácia, že blok je plný a nie je možné vložiť záznam
         }
-        return new BlockInsertResult(blockindex, block);
-    }
-
-    public BlockInsertResult insertRecordWithMetadata(T record,int blockIndex, int nextBlock, int prevBlock) {
-        BlockInsertResult insertResult = this.insertRecord(record, blockIndex);
-        if (insertResult.blockIndex == -1) {
-            return insertResult;
-        }
-        insertResult.block.setNextBlockIndex(nextBlock);
-        insertResult.block.setPreviousBlockIndex(prevBlock);
-        insertResult.block.addRecord(record);
-        this.updateListsAfterInsert(insertResult.blockIndex, insertResult.block);
-        this.writeBlockToFile(insertResult.block, insertResult.blockIndex);
-        if (insertResult.blockIndex == this.totalBlocks) {
+        block.setNextBlockIndex(nextBlock);
+        block.addRecord(record);
+        this.updateListsAfterInsert(blockIndex, block);
+        this.writeBlockToFile(block, blockIndex);
+        if (blockIndex == this.totalBlocks) {
             this.totalBlocks++;
         }
         this.totalRecords++;
         this.saveLists();
         this.saveHeader();
-        return insertResult;
+        return new BlockInsertResult(blockIndex, block);
     }
 
-    public BlockInsertResult insertRecordAsNewBlock(T record, int nextBlock, int prevBlock) {
+    public BlockInsertResult insertRecordAsNewBlock(T record, int nextBlock) {
         int blockIndex;
         // Použiť iba emptyBlocks (bloky úplne prázdne) alebo nový blok na konci
         if (!this.emptyBlocks.isEmpty()) {
@@ -93,7 +113,6 @@ public class HeapFile<T extends IRecord<T>> {
 
         // Nastaviť ukazovatele a zapísať
         block.setNextBlockIndex(nextBlock);
-        block.setPreviousBlockIndex(prevBlock);
         this.writeBlockToFile(block, blockIndex);
 
         if (blockIndex == this.totalBlocks) {
@@ -106,22 +125,6 @@ public class HeapFile<T extends IRecord<T>> {
 
         return new BlockInsertResult(blockIndex, block);
     }
-
-    public void updateChainPointers(int blockIndex, int nextBlock, int prevBlock) {
-        Block<T> block = this.getBlock(blockIndex);
-        block.setNextBlockIndex(nextBlock);
-        block.setPreviousBlockIndex(prevBlock);
-        this.writeBlockToFile(block, blockIndex);
-    }
-
-    private void applyDeleteMetadata(int blockIndex, Block<T> block) {
-        this.totalRecords--;
-        this.updateListsAfterDelete(blockIndex, block);
-        this.writeBlockToFile(block, blockIndex);
-        this.saveLists();
-        this.saveHeader();
-    }
-
 
     public T findRecord(int index, T record) {
         if (index < 0 || index >= this.totalBlocks) {
@@ -146,22 +149,26 @@ public class HeapFile<T extends IRecord<T>> {
         return null;
     }
 
-    public boolean deleteFromChain(int startBlockIndex, T record) {
-        int currentIndex = startBlockIndex;
-
-        while (currentIndex != -1) {
-            Block<T> block = this.getBlock(currentIndex);
-            T removed = block.removeRecord(record);
-
-            if (removed != null) {
-                this.applyDeleteMetadata(currentIndex, block);
-                return true;
-            }
-
-            currentIndex = block.getNextBlockIndex();
+    public boolean deleteRecord(int index, T record) {
+        if (index < 0 || index >= this.totalBlocks) {
+            return false;
         }
 
-        return false;
+        Block<T> block = this.getBlock(index);
+        T removed = block.removeRecord(record);
+
+        if (removed == null) {
+            return false;
+        }
+
+        this.totalRecords--;
+        this.updateListsAfterDelete(index, block);
+        this.writeBlockToFile(block, index);
+        this.trimTrailingEmptyBlocks();
+
+        this.saveLists();
+        this.saveHeader();
+        return true;
     }
 
     private void updateListsAfterInsert(int index, Block<T> block) {
@@ -178,11 +185,6 @@ public class HeapFile<T extends IRecord<T>> {
             }
             this.partiallyEmptyBlocks.remove(Integer.valueOf(index));
         }
-        if (this.blockValidCounts.size() > index) {
-            this.blockValidCounts.set(index, block.getValidCount());
-        } else {
-            this.blockValidCounts.add(block.getValidCount());
-        }
     }
 
     private void updateListsAfterDelete(int index, Block<T> block) {
@@ -194,7 +196,6 @@ public class HeapFile<T extends IRecord<T>> {
                 this.partiallyEmptyBlocks.add(index);
             }
         }
-        this.blockValidCounts.set(index, block.getValidCount());
     }
 
     public void trimTrailingEmptyBlocks() {
@@ -251,19 +252,9 @@ public class HeapFile<T extends IRecord<T>> {
         return index;
     }
 
-    public boolean hasFreeSpace(int blockIndex) {
-        Block<T> block = this.getBlock(blockIndex);
-        return block.getValidCount() < block.getBlockFactor();
-    }
-
     public int getNextBlockIndex(int blockIndex) {
         Block<T> block = this.getBlock(blockIndex);
         return block.getNextBlockIndex();
-    }
-
-    public int getPreviousBlockIndex(int blockIndex) {
-        Block<T> block = this.getBlock(blockIndex);
-        return block.getPreviousBlockIndex();
     }
 
     private void truncateLastBlock(int numberOfBlocks) {
@@ -277,15 +268,8 @@ public class HeapFile<T extends IRecord<T>> {
 
     private void saveHeader() {
         try (PrintWriter pw = new PrintWriter(new FileWriter(this.headerFile))) {
-
             pw.println(this.totalBlocks);
             pw.println(this.totalRecords);
-
-            for (int i = 0; i < this.totalBlocks; i++) {
-                pw.println(i);                       // index bloku
-                pw.println(this.blockValidCounts.get(i)); // počet valid záznamov
-            }
-
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -294,18 +278,8 @@ public class HeapFile<T extends IRecord<T>> {
 
     private void loadHeader() {
         try (BufferedReader br = new BufferedReader(new FileReader(this.headerFile))) {
-
             this.totalBlocks = Integer.parseInt(br.readLine());
             this.totalRecords = Integer.parseInt(br.readLine());
-
-            this.blockValidCounts.clear();
-
-            for (int i = 0; i < this.totalBlocks; i++) {
-                br.readLine(); // index ignorujeme, aj tak je to i
-                int count = Integer.parseInt(br.readLine());
-                this.blockValidCounts.add(count);
-            }
-
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

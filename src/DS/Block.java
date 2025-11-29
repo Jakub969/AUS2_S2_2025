@@ -15,19 +15,17 @@ public class Block<T extends IRecord<T>> implements IByteOperation<T> {
     private final int recordSize;
     private final int blockSize;
     private int nextBlockIndex;
-    private int previousBlockIndex;
 
 
     public Block(Class<T> recordType, int sizeOfBlock) {
         this.recordType = recordType;
         this.recordSize = this.getSizeOfRecord();
         this.blockSize = sizeOfBlock;
-        int actualSizeOfBlock = this.blockSize - 3*(Integer.BYTES);
+        int actualSizeOfBlock = this.blockSize - 2*(Integer.BYTES);
         this.blockFactor = actualSizeOfBlock / this.recordSize;
         this.records = new IRecord[this.blockFactor];
         this.validCount = 0;
         this.nextBlockIndex = -1;
-        this.previousBlockIndex = -1;
     }
 
     private int getSizeOfRecord() {
@@ -48,7 +46,6 @@ public class Block<T extends IRecord<T>> implements IByteOperation<T> {
         try {
             this.validCount = hlpInStream.readInt();
             this.nextBlockIndex = hlpInStream.readInt();
-            this.previousBlockIndex = hlpInStream.readInt();
             for (int i = 0; i < this.blockFactor; i++) {
                 byte[] recordBytes = new byte[this.recordSize];
                 hlpInStream.read(recordBytes);
@@ -70,7 +67,6 @@ public class Block<T extends IRecord<T>> implements IByteOperation<T> {
         Arrays.fill(this.records, null);
         this.validCount = 0;
         this.nextBlockIndex = -1;
-        this.previousBlockIndex = -1;
     }
 
     @Override
@@ -80,7 +76,6 @@ public class Block<T extends IRecord<T>> implements IByteOperation<T> {
         try {
             hlpOutStream.writeInt(this.validCount);
             hlpOutStream.writeInt(this.nextBlockIndex);
-            hlpOutStream.writeInt(this.previousBlockIndex);
             for (int i = 0; i < this.blockFactor; i++) {
                 if (this.records[i] != null) {
                     hlpOutStream.write(this.records[i].toByteArray());
@@ -159,9 +154,6 @@ public class Block<T extends IRecord<T>> implements IByteOperation<T> {
 
     public int getNextBlockIndex() { return this.nextBlockIndex; }
     public void setNextBlockIndex(int nextBlockIndex) { this.nextBlockIndex = nextBlockIndex; }
-
-    public int getPreviousBlockIndex() { return this.previousBlockIndex; }
-    public void setPreviousBlockIndex(int previousBlockIndex) { this.previousBlockIndex = previousBlockIndex; }
 
 
     public int getValidCount() {

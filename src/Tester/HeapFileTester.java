@@ -47,8 +47,7 @@ public class HeapFileTester<T extends IRecord<T>> {
     }
 
     public void insertRecord(T record) {
-        int i = this.heapFile.getPartiallyEmptyBlocks().getFirst();
-        int blockIndex = this.heapFile.insertRecordWithMetadata(record,i, -1, -1).blockIndex;
+        int blockIndex = this.heapFile.insertRecord(record);
 
         while (this.expectedBlocks.size() <= blockIndex) {
             this.expectedBlocks.add(new ArrayList<>());
@@ -56,10 +55,33 @@ public class HeapFileTester<T extends IRecord<T>> {
 
         this.expectedBlocks.get(blockIndex).add(record);
         this.inserted.add(new IndexedRecord<>(blockIndex, record));
+        this.validateState(blockIndex);
+    }
+
+    private void validateState(int blockIndex) {
+        Block<T> block = this.heapFile.getBlock(blockIndex);
+        List<IRecord<T>> expectedRecords = this.expectedBlocks.get(blockIndex);
+
+        if (block.getValidCount() != expectedRecords.size()) {
+            throw new IllegalStateException("Validation failed: valid count mismatch in block " + blockIndex);
+        }
+
+        for (IRecord<T> expectedRecord : expectedRecords) {
+            boolean found = false;
+            for (int j = 0; j < block.getValidCount(); j++) {
+                if (block.getRecordAt(j).isEqual((T) expectedRecord)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                throw new IllegalStateException("Validation failed: record not found in block " + blockIndex);
+            }
+        }
     }
 
     public void removeRecord(IndexedRecord<T> entry) {
-        boolean removedHeap = this.heapFile.deleteFromChain(entry.blockIndex, entry.record);
+        boolean removedHeap = this.heapFile.deleteRecord(entry.blockIndex, entry.record);
 
         boolean removedExpected = this.expectedBlocks.get(entry.blockIndex).removeIf(r -> r.isEqual(entry.record));
 
