@@ -330,6 +330,11 @@ public class HeapFile<T extends IRecord<T>> {
         return this.blockSize;
     }
 
+    public int getBlockFactor() {
+        Block<T> tempBlock = new Block<>(this.recordClass, this.blockSize);
+        return tempBlock.getBlockFactor();
+    }
+
     public Class<T> getRecordClass() {
         return this.recordClass;
     }

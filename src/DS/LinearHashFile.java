@@ -185,15 +185,10 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
 
     private void splitNextBucketIfNeeded() {
         // Only split if load factor exceeds threshold
-        double loadFactor = (double) this.primaryFile.getTotalRecords() / (this.getNumberOfBuckets() * this.getAverageBlockCapacity());
+        double loadFactor = (double) this.primaryFile.getTotalRecords() / (this.getNumberOfBuckets() * this.primaryFile.getBlockFactor());
         if (loadFactor > 0.75) { // Adjust threshold as needed
             this.splitNextBucket();
         }
-    }
-
-    private double getAverageBlockCapacity() {
-        // Return average records per block
-        return (double) this.primaryFile.getBlock(0).getBlockFactor();
     }
 
     public void splitNextBucket() {
@@ -312,14 +307,21 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         }
 
         int currentIndex = headBlockIndex;
+        Block<T> block = this.primaryFile.getBlock(currentIndex);
+        System.out.println("Bucket: " + bucket + ", Block Index: " + currentIndex + ", Valid Records: " + block.getValidCount());
+        for (int i = 0; i < block.getValidCount(); i++) {
+            System.out.println(block.getRecordAt(i).toString());
+        }
+        count += block.getValidCount();
+        currentIndex = this.primaryFile.getNextBlockIndex(currentIndex);
         while (currentIndex != -1) {
-            Block<T> block = this.getFileForBlockIndex(currentIndex).getBlock(currentIndex);
-            System.out.println("Bucket: " + bucket + ", Block Index: " + currentIndex + ", Valid Records: " + block.getValidCount());
-            for (int i = 0; i < block.getValidCount(); i++) {
-                System.out.println(block.getRecordAt(i).toString());
+            Block<T> b = this.overflowFile.getBlock(currentIndex);
+            System.out.println("Bucket: " + bucket + ", Overflow Block Index: " + currentIndex + ", Valid Records: " + b.getValidCount());
+            for (int i = 0; i < b.getValidCount(); i++) {
+                System.out.println(b.getRecordAt(i).toString());
             }
-            count += block.getValidCount();
-            currentIndex = this.getFileForBlockIndex(currentIndex).getNextBlockIndex(currentIndex);
+            count += b.getValidCount();
+            currentIndex = b.getNextBlockIndex();
         }
         return count;
     }
