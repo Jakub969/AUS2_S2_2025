@@ -30,8 +30,8 @@ public class Main {
                 Osoba::getHash, // key extractor
                 "primary_data.bin", // primary file name
                 "overflow_data.bin", // overflow file name
-                512, // primary block size
-                256  // overflow block size
+                256, // primary block size
+                128  // overflow block size
         );
 
         // Create tester
@@ -42,7 +42,7 @@ public class Main {
         );
 
         // Perform random operations
-        tester.performRandomOperations(150);
+        tester.performRandomOperations(20);
 
         // Print final bucket distribution
         tester.printBucketDistribution();*/

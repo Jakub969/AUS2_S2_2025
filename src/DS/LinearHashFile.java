@@ -8,8 +8,8 @@ import java.util.*;
 import java.util.function.Function;
 
 public class LinearHashFile<T extends IRecord<T> & IHashable> {
-    private HeapFile<T> primaryFile;
-    private HeapFile<T> overflowFile;
+    private final HeapFile<T> primaryFile;
+    private final HeapFile<T> overflowFile;
     private final Function<T, Long> keyExtractor;
 
     private List<Integer> bucketPointers; // head block index per bucket, -1 if empty
@@ -45,7 +45,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         int mod = (1 << this.i);
         long bucket = h & (mod - 1);
         if (bucket < this.nextSplit) {
-            bucket = h & ((mod << 1) - 1);
+            bucket = h & (((long) mod << 1) - 1);
         }
         return (int) bucket;
     }
@@ -112,15 +112,6 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         return null;
     }
 
-    // Helper methods to determine which file contains a block
-    private HeapFile<T> getFileForBlockIndex(int blockIndex) {
-        if (blockIndex < this.primaryFile.getTotalBlocks()) {
-            return this.primaryFile;
-        } else {
-            return this.overflowFile;
-        }
-    }
-
     private void insertIntoBucket(int bucket, T record) {
         int headBlockIndex = this.bucketPointers.get(bucket);
 
@@ -133,54 +124,49 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         }
         HeapFile.BlockInsertResult result = this.primaryFile.insertRecordWithMetadata(record, headBlockIndex, -1);
 
-        if (result.blockIndex == -1)  {
-            if (result.block.getNextBlockIndex() != -1) {
-                this.overflowFile.insertRecordWithMetadata(record,result.block.getNextBlockIndex(), -1);
+        if (result.blockIndex == -1) {
+            Block<T> b = result.block;
+            int currentIndex = headBlockIndex;
+
+            // nájdi posledný blok chainu
+            while (b.getNextBlockIndex() != -1 && b.getValidCount() == b.getBlockFactor()) {
+                currentIndex = b.getNextBlockIndex();
+                b = this.overflowFile.getBlock(currentIndex);
             }
-            else {
-                // No space - add new overflow block
-                this.addNewOverflowBlock(headBlockIndex, result, record);
+
+            if (b.getValidCount() < b.getBlockFactor()) {
+                // vlož do tohto bloku b
+                this.overflowFile.insertRecordWithMetadata(record, currentIndex, b.getNextBlockIndex());
+            } else {
+                // posledný blok a je plný, pridaj nový
+                this.addNewOverflowBlock(currentIndex, record);
             }
         }
 
         this.splitNextBucketIfNeeded();
     }
 
-    private void addNewOverflowBlock(int chainHeadIndex, HeapFile.BlockInsertResult previousBlock, T record) {
-        // Find last block in chain
-        int lastBlockIndex;
-        if (previousBlock.block.getNextBlockIndex() == -1) {
-            lastBlockIndex = chainHeadIndex;
-        } else {
-            lastBlockIndex = this.findLastBlockInChain(chainHeadIndex);
+    private void addNewOverflowBlock(int chainHeadIndex, T record) {
+        // 1. find last block of the chain
+        int currentIndex = chainHeadIndex;
+        HeapFile<T> file = this.primaryFile;
+        Block<T> block = this.primaryFile.getBlock(currentIndex);
+
+        while (block.getNextBlockIndex() != -1) {
+            currentIndex = block.getNextBlockIndex();
+            file = this.overflowFile;
+            block = this.overflowFile.getBlock(currentIndex);
         }
 
+        // now currentIndex = last block, block = last block
 
-        // Insert new block in overflow file
-        HeapFile.BlockInsertResult result = this.overflowFile.insertRecordAsNewBlock(record, -1);
-        int newBlockIndex = result.blockIndex;
+        // 2. create new overflow block
+        HeapFile.BlockInsertResult res = overflowFile.insertRecordAsNewBlock(record, -1);
+        int newBlockIndex = res.blockIndex;
 
-        // Update previous block's next pointer
-        if( lastBlockIndex == chainHeadIndex) {
-            previousBlock.block.setNextBlockIndex(newBlockIndex);
-            this.primaryFile.writeBlockToFile(previousBlock.block, lastBlockIndex);
-            return;
-        }
-        HeapFile<T> previousFile = this.getFileForBlockIndex(lastBlockIndex);
-        Block<T> previousBlockUpdate = previousFile.getBlock(lastBlockIndex);
-        previousBlockUpdate.setNextBlockIndex(newBlockIndex);
-        previousFile.writeBlockToFile(previousBlockUpdate, lastBlockIndex);
-    }
-
-    private int findLastBlockInChain(int startBlockIndex) {
-        int currentIndex = startBlockIndex;
-        int lastIndex = startBlockIndex;
-
-        while (currentIndex != -1) {
-            lastIndex = currentIndex;
-            currentIndex = this.getFileForBlockIndex(currentIndex).getNextBlockIndex(currentIndex);
-        }
-        return lastIndex;
+        // 3. link last block to new block
+        block.setNextBlockIndex(newBlockIndex);
+        file.writeBlockToFile(block, currentIndex);
     }
 
     private void splitNextBucketIfNeeded() {
@@ -238,7 +224,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         for (T rec : all) {
             long k = this.keyExtractor.apply(rec);
             long h = k & 0x7FFFFFFFFFFFFFFFL;
-            long target = h & ((1 << (this.i + 1)) - 1); // mod 2^(i+1)
+            long target = h & ((1L << (this.i + 1)) - 1); // mod 2^(i+1)
             if (target == bucketToSplit) {
                 this.insertIntoBucketNoSplit(bucketToSplit, rec);
             } else {
