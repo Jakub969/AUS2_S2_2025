@@ -137,8 +137,8 @@ public class Osoba implements IRecord<Osoba>, IHashable {
         return new Osoba("", "", new Date(0), uuid);
     }
 
-    public static Osoba generateRandom(long seed) {
-        Random r = new Random(seed);
+    public static Osoba generateRandom() {
+        Random r = new Random();
         String meno = randomName();
         String priez = randomSurname();
         String uuid = randomString(10);

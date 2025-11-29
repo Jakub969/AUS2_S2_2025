@@ -201,18 +201,14 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
             this.saveDirectory();
             return;
         }
+        HeapFile.BlockInsertResult result = this.primaryFile.insertRecordWithMetadata(record, -1, -1);
 
-        // Try to find space in existing chain
-        Integer availableBlock = this.findBlockWithSpace(headBlockIndex);
-
-        if (availableBlock != null) {
-            // Found space in existing block
-            Block<T> block = this.getBlockFromAppropriateFile(availableBlock);
-            block.addRecord(record);
-            this.writeBlockToAppropriateFile(block, availableBlock);
-        } else {
-            // No space - add new overflow block
-            this.addNewOverflowBlock(headBlockIndex, record);
+        if (result.blockIndex == -1)  {
+            HeapFile.BlockInsertResult newResult = this.overflowFile.insertRecordWithMetadata(record, -1, -1);
+            if (newResult.blockIndex == -1)  {
+                // No space - add new overflow block
+                this.addNewOverflowBlock(headBlockIndex, record);
+            }
         }
 
         this.splitNextBucketIfNeeded();

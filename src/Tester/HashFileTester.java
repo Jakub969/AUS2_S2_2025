@@ -49,11 +49,12 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
         // Perform insertion
         this.hashFile.insert(record);
 
+        long absKey = Math.abs(key);
         // Update expected state
-        this.expectedRecords.put(key, record.createCopy());
-        this.inserted.add(new IndexedRecord<>(key, record.createCopy()));
+        this.expectedRecords.put(absKey, record.createCopy());
+        this.inserted.add(new IndexedRecord<>(absKey, record.createCopy()));
 
-        System.out.println("[INSERT] Key: " + key + ", Record: " + record);
+        System.out.println("[INSERT] Key: " + absKey + ", Record: " + record);
         this.validateState();
     }
 
@@ -154,7 +155,7 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
         if (!this.hashFile.getPrimaryFile().getRecordClass().equals(Osoba.class)) {
             throw new IllegalStateException("This tester only supports Osoba");
         }
-        return (T) Osoba.generateRandom(this.seed);
+        return (T) Osoba.generateRandom();
     }
 
     private void validateState() {
@@ -164,6 +165,7 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
         for (Map.Entry<Long, T> entry : this.expectedRecords.entrySet()) {
             T expectedRecord = entry.getValue();
             T foundRecord = this.hashFile.find(expectedRecord);
+            T again = this.hashFile.find(expectedRecord); // double-check
 
             if (foundRecord == null) {
                 throw new IllegalStateException("Validation failed: Record with key " + entry.getKey() + " not found in hash file");

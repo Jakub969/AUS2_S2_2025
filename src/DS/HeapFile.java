@@ -52,7 +52,8 @@ public class HeapFile<T extends IRecord<T>> {
         if (blockIndex < this.totalBlocks) {
             block = this.getBlock(blockIndex);
         } else {
-            block = new Block<>(this.recordClass, this.blockSize);
+            //block = new Block<>(this.recordClass, this.blockSize);
+            return -1; // Indikácia, že blok je plný a nie je možné vložiť záznam
         }
 
         block.addRecord(record);
@@ -70,6 +71,9 @@ public class HeapFile<T extends IRecord<T>> {
 
     public BlockInsertResult insertRecordWithMetadata(T record, int nextBlock, int prevBlock) {
         int blockIndex = this.insertRecord(record);
+        if (blockIndex == -1) {
+            return new BlockInsertResult(-1, null);
+        }
         Block<T> block = this.getBlock(blockIndex);
         block.setNextBlockIndex(nextBlock);
         block.setPreviousBlockIndex(prevBlock);
