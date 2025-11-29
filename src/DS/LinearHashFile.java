@@ -195,16 +195,15 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
 
         if (headBlockIndex == -1) {
             // First record in bucket - insert into primary file
-            HeapFile.BlockInsertResult result =
-                    this.primaryFile.insertRecordAsNewBlock(record, -1, -1);
+            HeapFile.BlockInsertResult result = this.primaryFile.insertRecordAsNewBlock(record, -1, -1);
             this.bucketPointers.set(bucket, result.blockIndex);
             this.saveDirectory();
             return;
         }
-        HeapFile.BlockInsertResult result = this.primaryFile.insertRecordWithMetadata(record, -1, -1);
+        HeapFile.BlockInsertResult result = this.primaryFile.insertRecordWithMetadata(record, headBlockIndex, -1, -1);
 
         if (result.blockIndex == -1)  {
-            HeapFile.BlockInsertResult newResult = this.overflowFile.insertRecordWithMetadata(record, -1, -1);
+            HeapFile.BlockInsertResult newResult = this.overflowFile.insertRecordWithMetadata(record,headBlockIndex, -1, -1);
             if (newResult.blockIndex == -1)  {
                 // No space - add new overflow block
                 this.addNewOverflowBlock(headBlockIndex, record);
@@ -231,8 +230,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         int lastBlockIndex = this.findLastBlockInChain(chainHeadIndex);
 
         // Insert new block in overflow file
-        HeapFile.BlockInsertResult result =
-                this.overflowFile.insertRecordAsNewBlock(record, -1, lastBlockIndex);
+        HeapFile.BlockInsertResult result = this.overflowFile.insertRecordAsNewBlock(record, -1, lastBlockIndex);
         int newBlockIndex = result.blockIndex;
 
         // Update previous block's next pointer
@@ -255,8 +253,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
 
     private void splitNextBucketIfNeeded() {
         // Only split if load factor exceeds threshold
-        double loadFactor = (double) this.primaryFile.getTotalRecords() /
-                (this.getNumberOfBuckets() * this.getAverageBlockCapacity());
+        double loadFactor = (double) this.primaryFile.getTotalRecords() / (this.getNumberOfBuckets() * this.getAverageBlockCapacity());
         if (loadFactor > 0.75) { // Adjust threshold as needed
             this.splitNextBucket();
         }
@@ -333,7 +330,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
     private void insertIntoBucketNoSplit(int bucket, T record) {
         int head = this.bucketPointers.get(bucket);
         if (head == -1) {
-            int newIdx = this.primaryFile.insertRecord(record);
+            int newIdx = this.primaryFile.insertRecordWithMetadata(record, head,-1, -1).blockIndex;
             this.bucketPointers.set(bucket, newIdx);
             return;
         }

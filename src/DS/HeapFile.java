@@ -37,48 +37,37 @@ public class HeapFile<T extends IRecord<T>> {
         }
     }
 
-    public int insertRecord(T record) {
-        int blockIndex;
-
+    public BlockInsertResult insertRecord(T record, int blockindex) {
         if (!this.partiallyEmptyBlocks.isEmpty()) {
-            blockIndex = this.partiallyEmptyBlocks.removeFirst();
+            this.partiallyEmptyBlocks.remove(Integer.valueOf(blockindex));
         } else if (!this.emptyBlocks.isEmpty()) {
-            blockIndex = this.emptyBlocks.removeFirst();
-        } else {
-            blockIndex = this.totalBlocks;
+            this.emptyBlocks.remove(Integer.valueOf(blockindex));
         }
 
-        Block<T> block;
-        if (blockIndex < this.totalBlocks) {
-            block = this.getBlock(blockIndex);
-        } else {
+        if (blockindex > this.totalBlocks) {
             //block = new Block<>(this.recordClass, this.blockSize);
-            return -1; // Indikácia, že blok je plný a nie je možné vložiť záznam
+            return new BlockInsertResult(-1, null); // Indikácia, že blok je plný a nie je možné vložiť záznam
         }
+        return new BlockInsertResult(blockindex, this.getBlock(blockindex));
+    }
 
-        block.addRecord(record);
-        this.updateListsAfterInsert(blockIndex, block);
-        this.writeBlockToFile(block, blockIndex);
-        if (blockIndex == this.totalBlocks) {
+    public BlockInsertResult insertRecordWithMetadata(T record,int blockIndex, int nextBlock, int prevBlock) {
+        BlockInsertResult insertResult = this.insertRecord(record, blockIndex);
+        if (insertResult.blockIndex == -1) {
+            return insertResult;
+        }
+        insertResult.block.setNextBlockIndex(nextBlock);
+        insertResult.block.setPreviousBlockIndex(prevBlock);
+        insertResult.block.addRecord(record);
+        this.updateListsAfterInsert(insertResult.blockIndex, insertResult.block);
+        this.writeBlockToFile(insertResult.block, insertResult.blockIndex);
+        if (insertResult.blockIndex == this.totalBlocks) {
             this.totalBlocks++;
         }
         this.totalRecords++;
-
         this.saveLists();
         this.saveHeader();
-        return blockIndex;
-    }
-
-    public BlockInsertResult insertRecordWithMetadata(T record, int nextBlock, int prevBlock) {
-        int blockIndex = this.insertRecord(record);
-        if (blockIndex == -1) {
-            return new BlockInsertResult(-1, null);
-        }
-        Block<T> block = this.getBlock(blockIndex);
-        block.setNextBlockIndex(nextBlock);
-        block.setPreviousBlockIndex(prevBlock);
-        this.writeBlockToFile(block, blockIndex);
-        return new BlockInsertResult(blockIndex, block);
+        return insertResult;
     }
 
     public BlockInsertResult insertRecordAsNewBlock(T record, int nextBlock, int prevBlock) {

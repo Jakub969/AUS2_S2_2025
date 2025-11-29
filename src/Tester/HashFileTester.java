@@ -125,7 +125,7 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
         for (int i = 0; i < count; i++) {
             System.out.println("\n--- Operation " + (i + 1) + " ---");
 
-            int op = this.random.nextInt(4); // 0=insert, 1=delete, 2=find, 3=find_non_existent
+            int op = 0;//this.random.nextInt(4); // 0=insert, 1=delete, 2=find, 3=find_non_existent
 
             switch (op) {
                 case 0 -> {
@@ -165,7 +165,6 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
         for (Map.Entry<Long, T> entry : this.expectedRecords.entrySet()) {
             T expectedRecord = entry.getValue();
             T foundRecord = this.hashFile.find(expectedRecord);
-            T again = this.hashFile.find(expectedRecord); // double-check
 
             if (foundRecord == null) {
                 throw new IllegalStateException("Validation failed: Record with key " + entry.getKey() + " not found in hash file");

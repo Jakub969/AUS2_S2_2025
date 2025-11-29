@@ -47,7 +47,8 @@ public class HeapFileTester<T extends IRecord<T>> {
     }
 
     public void insertRecord(T record) {
-        int blockIndex = this.heapFile.insertRecord(record);
+        int i = this.heapFile.getPartiallyEmptyBlocks().getFirst();
+        int blockIndex = this.heapFile.insertRecordWithMetadata(record,i, -1, -1).blockIndex;
 
         while (this.expectedBlocks.size() <= blockIndex) {
             this.expectedBlocks.add(new ArrayList<>());
