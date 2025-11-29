@@ -14,6 +14,7 @@ public class HeapFile<T extends IRecord<T>> {
     private final int blockSize;
     private final LinkedList<Integer> emptyBlocks;
     private final LinkedList<Integer> partiallyEmptyBlocks;
+    private final List<Integer> blockValidCounts;
     private int totalBlocks;
     private int totalRecords;
 
@@ -26,6 +27,7 @@ public class HeapFile<T extends IRecord<T>> {
         this.blockSize = blockSize;
         this.emptyBlocks = new LinkedList<>();
         this.partiallyEmptyBlocks = new LinkedList<>();
+        this.blockValidCounts = new LinkedList<>();
         if (this.dataFile.exists()) {
             this.loadLists();
             this.loadHeader();
@@ -174,13 +176,20 @@ public class HeapFile<T extends IRecord<T>> {
         if (block.getValidCount() == block.getBlockFactor()) {
             this.partiallyEmptyBlocks.remove(Integer.valueOf(index));
         } else if (block.getValidCount() > 0 && block.getValidCount() < block.getBlockFactor()) {
-            if (!this.partiallyEmptyBlocks.contains(index))
+            if (!this.partiallyEmptyBlocks.contains(index)) {
                 this.partiallyEmptyBlocks.add(index);
+            }
             this.emptyBlocks.remove(Integer.valueOf(index));
         } else if (block.getValidCount() == 0) {
-            if (!this.emptyBlocks.contains(index))
+            if (!this.emptyBlocks.contains(index)) {
                 this.emptyBlocks.add(index);
+            }
             this.partiallyEmptyBlocks.remove(Integer.valueOf(index));
+        }
+        if (this.blockValidCounts.size() > index) {
+            this.blockValidCounts.set(index, block.getValidCount());
+        } else {
+            this.blockValidCounts.add(block.getValidCount());
         }
     }
 
@@ -189,9 +198,11 @@ public class HeapFile<T extends IRecord<T>> {
             this.emptyBlocks.add(index);
             this.partiallyEmptyBlocks.remove(Integer.valueOf(index));
         } else if (block.getValidCount() < block.getBlockFactor()) {
-            if (!this.partiallyEmptyBlocks.contains(index))
+            if (!this.partiallyEmptyBlocks.contains(index)) {
                 this.partiallyEmptyBlocks.add(index);
+            }
         }
+        this.blockValidCounts.set(index, block.getValidCount());
     }
 
     public void trimTrailingEmptyBlocks() {
@@ -274,22 +285,40 @@ public class HeapFile<T extends IRecord<T>> {
 
     private void saveHeader() {
         try (PrintWriter pw = new PrintWriter(new FileWriter(this.headerFile))) {
+
             pw.println(this.totalBlocks);
             pw.println(this.totalRecords);
+
+            for (int i = 0; i < this.totalBlocks; i++) {
+                pw.println(i);                       // index bloku
+                pw.println(this.blockValidCounts.get(i)); // počet valid záznamov
+            }
+
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
+
     private void loadHeader() {
-        if (!this.headerFile.exists()) return;
         try (BufferedReader br = new BufferedReader(new FileReader(this.headerFile))) {
+
             this.totalBlocks = Integer.parseInt(br.readLine());
             this.totalRecords = Integer.parseInt(br.readLine());
-        } catch (IOException | NumberFormatException e) {
+
+            this.blockValidCounts.clear();
+
+            for (int i = 0; i < this.totalBlocks; i++) {
+                br.readLine(); // index ignorujeme, aj tak je to i
+                int count = Integer.parseInt(br.readLine());
+                this.blockValidCounts.add(count);
+            }
+
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
+
 
     private void saveLists() {
         this.saveListToFile(this.emptyBlocksFile, this.emptyBlocks);

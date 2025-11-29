@@ -149,7 +149,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         this.handlePostDeletionCleanup(bucket, headBlockIndex);
 
         // Now it is safe to trim blocks
-        this.primaryFile.trimTrailingEmptyBlocks();
+        //this.primaryFile.trimTrailingEmptyBlocks();
         this.overflowFile.trimTrailingEmptyBlocks();
 
         return true;
