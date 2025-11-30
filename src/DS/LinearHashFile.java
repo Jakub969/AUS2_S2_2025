@@ -12,8 +12,8 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
     private final HeapFile<T> overflowFile;
     private final Function<T, Long> keyExtractor;
 
-    private List<Integer> bucketPointers; // head block index per bucket, -1 if empty
-    private int i;           // current level: buckets = 2^i initially
+    private List<Integer> bucketPointers;
+    private int i; //aktualna uroven (u)
     private int nextSplit;
     private final File dirFile;
 
@@ -210,10 +210,8 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
             long target = h & (((long) mod << 1) - 1); // mod 2^(i+1)
             if (target == bucketToSplit) {
                 oldBacketRecords.add(rec);
-                //this.insertIntoBucketNoSplit(bucketToSplit, rec);
             } else {
                 newBacketRecords.add(rec);
-                //this.insertIntoBucketNoSplit(newBucketIndex, rec);
             }
         }
 
@@ -238,15 +236,15 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         if (head == -1) {
             HeapFile.BlockInsertResult<T> result = this.primaryFile.insertRecordAsNewBlock(records.removeFirst(), -1);
             this.bucketPointers.set(bucket, result.blockIndex);
-            while (result.block.getValidCount() < result.block.getBlockFactor() && records.size() > 1) {
+            while (result.block.getValidCount() < result.block.getBlockFactor() && !records.isEmpty()) {
                 result.block.addRecord(records.removeFirst());
             }
             this.primaryFile.writeBlockToFile(result.block, result.blockIndex);
             int lastIndex = result.blockIndex;
             boolean lastIsPrimary = true;
-            while (records.size() > 1) {
+            while (!records.isEmpty()) {
                 HeapFile.BlockInsertResult<T> res = this.overflowFile.insertRecordAsNewBlock(records.removeFirst(), -1);
-                while (res.block.getValidCount() < res.block.getBlockFactor() && records.size() > 1) {
+                while (res.block.getValidCount() < res.block.getBlockFactor() && !records.isEmpty()) {
                     res.block.addRecord(records.removeFirst());
                 }
                 this.overflowFile.writeBlockToFile(res.block, res.blockIndex);
@@ -267,10 +265,9 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         List<Block<T>> chain = new ArrayList<>();
         List<Integer> indices = new ArrayList<>();
         List<Boolean> isPrimaryList = new ArrayList<>();
-        //Najskôr primárny blok potom viem že sú len overflow bloky
+
         int currentIndex = head;
         boolean isPrimary = true;
-
         while (currentIndex != -1) {
             Block<T> currentBlock = isPrimary ? this.primaryFile.getBlock(currentIndex) : this.overflowFile.getBlock(currentIndex);
             chain.add(currentBlock);
@@ -280,30 +277,44 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
             isPrimary = false;
         }
 
-        for (Block<T> block : chain) {
+        for (int i = 0; i < chain.size() && !records.isEmpty(); i++) {
+            Block<T> block = chain.get(i);
+            int index = indices.get(i);
+            boolean blockIsPrimary = isPrimaryList.get(i);
+
             while (block.getValidCount() < block.getBlockFactor() && !records.isEmpty()) {
                 block.addRecord(records.removeFirst());
             }
+
+            if (blockIsPrimary) {
+                this.primaryFile.writeBlockToFile(block, index);
+            } else {
+                this.overflowFile.writeBlockToFile(block, index);
+            }
+
             if (records.isEmpty()) {
-                break;
+                return;
             }
         }
 
         int lastIndex = indices.getLast();
         boolean lastIsPrimary = isPrimaryList.getLast();
-        Block<T> lastBlock = lastIsPrimary ? this.primaryFile.getBlock(lastIndex) : this.overflowFile.getBlock(lastIndex);
+        Block<T> lastBlock = chain.getLast();
+
         while (!records.isEmpty()) {
             HeapFile.BlockInsertResult<T> res = this.overflowFile.insertRecordAsNewBlock(records.removeFirst(), -1);
             while (res.block.getValidCount() < res.block.getBlockFactor() && !records.isEmpty()) {
                 res.block.addRecord(records.removeFirst());
             }
             this.overflowFile.writeBlockToFile(res.block, res.blockIndex);
+
             lastBlock.setNextBlockIndex(res.blockIndex);
             if (lastIsPrimary) {
                 this.primaryFile.writeBlockToFile(lastBlock, lastIndex);
             } else {
                 this.overflowFile.writeBlockToFile(lastBlock, lastIndex);
             }
+
             lastIndex = res.blockIndex;
             lastIsPrimary = false;
             lastBlock = res.block;
