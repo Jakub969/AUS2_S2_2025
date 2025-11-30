@@ -169,24 +169,24 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
 
         List<T> all = new ArrayList<>();
         if (oldHead != -1) {
-            int idx = oldHead;
-            Block<T> b = this.primaryFile.getBlock(idx);
+            int index = oldHead;
+            Block<T> b = this.primaryFile.getBlock(index);
             for (int r = 0; r < b.getValidCount(); r++) {
                 IRecord<T> rec = b.getRecordAt(r);
                 if (rec != null) {
                     all.add(rec.createCopy());
                 }
             }
-            idx = b.getNextBlockIndex();
-            while (idx != -1) {
-                b = this.overflowFile.getBlock(idx);
+            index = b.getNextBlockIndex();
+            while (index != -1) {
+                b = this.overflowFile.getBlock(index);
                 for (int r = 0; r < b.getValidCount(); r++) {
                     IRecord<T> rec = b.getRecordAt(r);
                     if (rec != null) {
                         all.add(rec.createCopy());
                     }
                 }
-                idx = b.getNextBlockIndex();
+                index = b.getNextBlockIndex();
             }
         }
 
@@ -201,16 +201,27 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         }
 
         //rehashovanie a vloženie záznamov do správnych bucketov
+        LinkedList<T> oldBacketRecords = new LinkedList<>();
+        LinkedList<T> newBacketRecords = new LinkedList<>();
         for (T rec : all) {
             long k = this.keyExtractor.apply(rec);
             long h = Math.abs(k);
             int mod = (1 << this.i);
             long target = h & (((long) mod << 1) - 1); // mod 2^(i+1)
             if (target == bucketToSplit) {
-                this.insertIntoBucketNoSplit(bucketToSplit, rec);
+                oldBacketRecords.add(rec);
+                //this.insertIntoBucketNoSplit(bucketToSplit, rec);
             } else {
-                this.insertIntoBucketNoSplit(newBucketIndex, rec);
+                newBacketRecords.add(rec);
+                //this.insertIntoBucketNoSplit(newBucketIndex, rec);
             }
+        }
+
+        if(!oldBacketRecords.isEmpty()) {
+            this.insertIntoBucketNoSplit(bucketToSplit, oldBacketRecords);
+        }
+        if(!newBacketRecords.isEmpty()) {
+            this.insertIntoBucketNoSplit(newBucketIndex, newBacketRecords);
         }
 
         this.nextSplit++;
@@ -222,48 +233,80 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         this.saveDirectory();
     }
 
-    private void insertIntoBucketNoSplit(int bucket, T record) {
+    private void insertIntoBucketNoSplit(int bucket, LinkedList<T> records) {
         int head = this.bucketPointers.get(bucket);
         if (head == -1) {
-            HeapFile.BlockInsertResult<T> result = this.primaryFile.insertRecordAsNewBlock(record, -1);
+            HeapFile.BlockInsertResult<T> result = this.primaryFile.insertRecordAsNewBlock(records.removeFirst(), -1);
             this.bucketPointers.set(bucket, result.blockIndex);
+            while (result.block.getValidCount() < result.block.getBlockFactor() && records.size() > 1) {
+                result.block.addRecord(records.removeFirst());
+            }
+            this.primaryFile.writeBlockToFile(result.block, result.blockIndex);
+            int lastIndex = result.blockIndex;
+            boolean lastIsPrimary = true;
+            while (records.size() > 1) {
+                HeapFile.BlockInsertResult<T> res = this.overflowFile.insertRecordAsNewBlock(records.removeFirst(), -1);
+                while (res.block.getValidCount() < res.block.getBlockFactor() && records.size() > 1) {
+                    res.block.addRecord(records.removeFirst());
+                }
+                this.overflowFile.writeBlockToFile(res.block, res.blockIndex);
+                Block<T> prevBlock = lastIsPrimary ? this.primaryFile.getBlock(lastIndex) : this.overflowFile.getBlock(lastIndex);
+                prevBlock.setNextBlockIndex(res.blockIndex);
+                if (lastIsPrimary) {
+                    this.primaryFile.writeBlockToFile(prevBlock, lastIndex);
+                } else {
+                    this.overflowFile.writeBlockToFile(prevBlock, lastIndex);
+                }
+                lastIndex = res.blockIndex;
+                lastIsPrimary = false;
+            }
             this.saveDirectory();
             return;
         }
 
+        List<Block<T>> chain = new ArrayList<>();
+        List<Integer> indices = new ArrayList<>();
+        List<Boolean> isPrimaryList = new ArrayList<>();
         //Najskôr primárny blok potom viem že sú len overflow bloky
         int currentIndex = head;
         boolean isPrimary = true;
 
         while (currentIndex != -1) {
-            Block<T> currentBlock = isPrimary ?
-                    this.primaryFile.getBlock(currentIndex) :
-                    this.overflowFile.getBlock(currentIndex);
-
-            if (currentBlock.getValidCount() < currentBlock.getBlockFactor()) {
-                currentBlock.addRecord(record);
-                if (isPrimary) {
-                    this.primaryFile.writeBlockToFile(currentBlock, currentIndex);
-                } else {
-                    this.overflowFile.writeBlockToFile(currentBlock, currentIndex);
-                }
-                return;
-            }
-
-            int nextIndex = currentBlock.getNextBlockIndex();
-            if (nextIndex == -1) {
-                HeapFile.BlockInsertResult<T> result = this.overflowFile.insertRecordAsNewBlock(record, -1);
-                currentBlock.setNextBlockIndex(result.blockIndex);
-                if (isPrimary) {
-                    this.primaryFile.writeBlockToFile(currentBlock, currentIndex);
-                } else {
-                    this.overflowFile.writeBlockToFile(currentBlock, currentIndex);
-                }
-                return;
-            }
-            //další blok bude overflow
-            currentIndex = nextIndex;
+            Block<T> currentBlock = isPrimary ? this.primaryFile.getBlock(currentIndex) : this.overflowFile.getBlock(currentIndex);
+            chain.add(currentBlock);
+            indices.add(currentIndex);
+            isPrimaryList.add(isPrimary);
+            currentIndex = currentBlock.getNextBlockIndex();
             isPrimary = false;
+        }
+
+        for (Block<T> block : chain) {
+            while (block.getValidCount() < block.getBlockFactor() && !records.isEmpty()) {
+                block.addRecord(records.removeFirst());
+            }
+            if (records.isEmpty()) {
+                break;
+            }
+        }
+
+        int lastIndex = indices.getLast();
+        boolean lastIsPrimary = isPrimaryList.getLast();
+        Block<T> lastBlock = lastIsPrimary ? this.primaryFile.getBlock(lastIndex) : this.overflowFile.getBlock(lastIndex);
+        while (!records.isEmpty()) {
+            HeapFile.BlockInsertResult<T> res = this.overflowFile.insertRecordAsNewBlock(records.removeFirst(), -1);
+            while (res.block.getValidCount() < res.block.getBlockFactor() && !records.isEmpty()) {
+                res.block.addRecord(records.removeFirst());
+            }
+            this.overflowFile.writeBlockToFile(res.block, res.blockIndex);
+            lastBlock.setNextBlockIndex(res.blockIndex);
+            if (lastIsPrimary) {
+                this.primaryFile.writeBlockToFile(lastBlock, lastIndex);
+            } else {
+                this.overflowFile.writeBlockToFile(lastBlock, lastIndex);
+            }
+            lastIndex = res.blockIndex;
+            lastIsPrimary = false;
+            lastBlock = res.block;
         }
     }
 
