@@ -127,11 +127,12 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         if (result.blockIndex == -1) {
             Block<T> b = result.block;
             int currentIndex = headBlockIndex;
-
+            boolean lastIsPrimary = true;
             // nájdi posledný blok chainu
             while (b.getNextBlockIndex() != -1 && b.getValidCount() == b.getBlockFactor()) {
                 currentIndex = b.getNextBlockIndex();
                 b = this.overflowFile.getBlock(currentIndex);
+                lastIsPrimary = false;
             }
 
             if (b.getValidCount() < b.getBlockFactor()) {
@@ -139,34 +140,23 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
                 this.overflowFile.insertRecordWithMetadata(record, currentIndex, b.getNextBlockIndex());
             } else {
                 // posledný blok a je plný, pridaj nový
-                this.addNewOverflowBlock(currentIndex, record);
+                this.addNewOverflowBlock(currentIndex, record,b, lastIsPrimary);
             }
         }
 
         this.splitNextBucketIfNeeded();
     }
 
-    private void addNewOverflowBlock(int chainHeadIndex, T record) {
-        // 1. find last block of the chain
-        int currentIndex = chainHeadIndex;
-        HeapFile<T> file = this.primaryFile;
-        Block<T> block = this.primaryFile.getBlock(currentIndex);
-
-        while (block.getNextBlockIndex() != -1) {
-            currentIndex = block.getNextBlockIndex();
-            file = this.overflowFile;
-            block = this.overflowFile.getBlock(currentIndex);
-        }
-
-        // now currentIndex = last block, block = last block
-
-        // 2. create new overflow block
+    private void addNewOverflowBlock(int chainHeadIndex, T record,Block<T> previousBlock, boolean lastIsPrimary) {
         HeapFile.BlockInsertResult res = overflowFile.insertRecordAsNewBlock(record, -1);
         int newBlockIndex = res.blockIndex;
 
-        // 3. link last block to new block
-        block.setNextBlockIndex(newBlockIndex);
-        file.writeBlockToFile(block, currentIndex);
+        previousBlock.setNextBlockIndex(newBlockIndex);
+        if (lastIsPrimary) {
+            this.primaryFile.writeBlockToFile(previousBlock, chainHeadIndex);
+        } else {
+            this.overflowFile.writeBlockToFile(previousBlock, chainHeadIndex);
+        }
     }
 
     private void splitNextBucketIfNeeded() {

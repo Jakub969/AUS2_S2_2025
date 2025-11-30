@@ -139,7 +139,7 @@ public class HeapFile<T extends IRecord<T>> {
         int currentIndex = startBlockIndex;
 
         while (currentIndex != -1) {
-            Block<T> block = this.getBlock(startBlockIndex);
+            Block<T> block = this.getBlock(currentIndex);
             T found = block.getCopyOfRecord(recordTemplate);
             if (found != null) {
                 return found;

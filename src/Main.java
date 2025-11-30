@@ -35,18 +35,18 @@ public class Main {
         );
 
         // Create tester
-        /*HashFileTester<Osoba> tester = new HashFileTester<>(
+        HashFileTester<Osoba> tester = new HashFileTester<>(
                 hashFile,
                 Osoba::getHash,
                 12345L // seed
         );
 
         // Perform random operations
-        tester.performRandomOperations(20);
+        tester.performRandomOperations(50);
 
         // Print final bucket distribution
-        tester.printBucketDistribution();*/
-        MainWindow<Osoba> mainWindow = new MainWindow<>(hashFile);
-        mainWindow.setVisible(true);
+        tester.printBucketDistribution();
+        /*MainWindow<Osoba> mainWindow = new MainWindow<>(hashFile);
+        mainWindow.setVisible(true);*/
     }
 }

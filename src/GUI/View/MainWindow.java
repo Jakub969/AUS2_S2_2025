@@ -133,14 +133,14 @@ public class MainWindow<T extends IRecord<T> & IHashable> extends JFrame {
             int cur = headIdx;
 
             Block<T> b = this.file.getPrimaryFile().getBlock(cur);
-            this.outputArea.append("  Block " + cur + " (" + b.getValidCount() + " records):\n");
+            this.outputArea.append("  Block " + cur + ", NextBlockIndex: " + b.getNextBlockIndex() + " (" + b.getValidCount() + " records):\n");
             for (int j = 0; j < b.getValidCount(); j++) {
                 this.outputArea.append("    " + b.getRecordAt(j) + "\n");
             }
             cur = b.getNextBlockIndex();
             while (cur != -1) {
                 b = this.file.getOverflowFile().getBlock(cur);
-                this.outputArea.append("  Block " + cur + " (" + b.getValidCount() + " records):\n");
+                this.outputArea.append("  Block " + cur + ", NextBlockIndex: " + b.getNextBlockIndex() +  " (" + b.getValidCount() + " records):\n");
                 for (int j = 0; j < b.getValidCount(); j++) {
                     this.outputArea.append("    " + b.getRecordAt(j) + "\n");
                 }

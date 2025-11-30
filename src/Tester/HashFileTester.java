@@ -113,7 +113,6 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
         for (Map.Entry<Long, T> entry : this.expectedRecords.entrySet()) {
             T expectedRecord = entry.getValue();
             T foundRecord = this.hashFile.find(expectedRecord);
-            T again = this.hashFile.find(expectedRecord);
 
             if (foundRecord == null) {
                 throw new IllegalStateException("Validation failed: Record with key " + entry.getKey() + " not found in hash file");
