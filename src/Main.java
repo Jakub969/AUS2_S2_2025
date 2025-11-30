@@ -26,7 +26,7 @@ public class Main {
         }*/
         LinearHashFile<Osoba> hashFile = new LinearHashFile<>(
                 Osoba.class,
-                4, // initial buckets
+                2, // initial buckets
                 Osoba::getHash, // key extractor
                 "primary_data.bin", // primary file name
                 "overflow_data.bin", // overflow file name
