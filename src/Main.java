@@ -24,28 +24,32 @@ public class Main {
                 return;
             }
         }*/
+
+        long seed = System.currentTimeMillis();
+        System.out.println("Testing with seed: " + seed);
         LinearHashFile<Osoba> hashFile = new LinearHashFile<>(
                 Osoba.class,
-                2, // initial buckets
+                4, // initial buckets
                 Osoba::getHash, // key extractor
                 "primary_data.bin", // primary file name
                 "overflow_data.bin", // overflow file name
-                256, // primary block size
-                128  // overflow block size
+                512, // primary block size
+                256  // overflow block size
         );
 
         // Create tester
         HashFileTester<Osoba> tester = new HashFileTester<>(
                 hashFile,
                 Osoba::getHash,
-                12345L // seed
+                seed // seed
         );
 
         // Perform random operations
-        tester.performRandomOperations(50);
+        tester.performRandomOperations(1000);
 
         // Print final bucket distribution
         tester.printBucketDistribution();
+
         /*MainWindow<Osoba> mainWindow = new MainWindow<>(hashFile);
         mainWindow.setVisible(true);*/
     }

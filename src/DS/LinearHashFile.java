@@ -91,19 +91,16 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
             return null;
         }
 
-        // Search in primary file chain
         T found = this.primaryFile.findRecord(headBlockIndex, record);
         if (found != null) {
             return found;
         }
 
-        // If not found in primary, search in overflow starting from primary chain
         int currentIndex = headBlockIndex;
         while (currentIndex != -1) {
             Block<T> block = this.primaryFile.getBlock(currentIndex);
             int nextIndex = block.getNextBlockIndex();
             if (nextIndex != -1) {
-                // This points to overflow file
                 return this.overflowFile.findInChain(nextIndex, record);
             }
             currentIndex = nextIndex;
@@ -116,19 +113,19 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         int headBlockIndex = this.bucketPointers.get(bucket);
 
         if (headBlockIndex == -1) {
-            // First record in bucket - insert into primary file
-            HeapFile.BlockInsertResult result = this.primaryFile.insertRecordAsNewBlock(record, -1);
+            HeapFile.BlockInsertResult<T> result = this.primaryFile.insertRecordAsNewBlock(record, -1);
             this.bucketPointers.set(bucket, result.blockIndex);
             this.saveDirectory();
             return;
         }
-        HeapFile.BlockInsertResult result = this.primaryFile.insertRecordWithMetadata(record, headBlockIndex, -1);
+        System.out.println("Insert into bucket " + bucket + ", head block index: " + headBlockIndex);
+        HeapFile.BlockInsertResult<T> result = this.primaryFile.insertRecordWithMetadata(record, headBlockIndex, -1);
 
         if (result.blockIndex == -1) {
             Block<T> b = result.block;
             int currentIndex = headBlockIndex;
             boolean lastIsPrimary = true;
-            // nájdi posledný blok chainu
+            // najdenie posledneho bloku v retazci
             while (b.getNextBlockIndex() != -1 && b.getValidCount() == b.getBlockFactor()) {
                 currentIndex = b.getNextBlockIndex();
                 b = this.overflowFile.getBlock(currentIndex);
@@ -136,10 +133,10 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
             }
 
             if (b.getValidCount() < b.getBlockFactor()) {
-                // vlož do tohto bloku b
+                //ak je miesto vlozim
                 this.overflowFile.insertRecordWithMetadata(record, currentIndex, b.getNextBlockIndex());
             } else {
-                // posledný blok a je plný, pridaj nový
+                //nie je miesto, vytvorim novy overflow block
                 this.addNewOverflowBlock(currentIndex, record,b, lastIsPrimary);
             }
         }
@@ -148,7 +145,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
     }
 
     private void addNewOverflowBlock(int chainHeadIndex, T record,Block<T> previousBlock, boolean lastIsPrimary) {
-        HeapFile.BlockInsertResult res = overflowFile.insertRecordAsNewBlock(record, -1);
+        HeapFile.BlockInsertResult<T> res = this.overflowFile.insertRecordAsNewBlock(record, -1);
         int newBlockIndex = res.blockIndex;
 
         previousBlock.setNextBlockIndex(newBlockIndex);
@@ -161,7 +158,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
 
     private void splitNextBucketIfNeeded() {
         double loadFactor = (double) (this.primaryFile.getTotalRecords()) / (this.getNumberOfBuckets() * this.primaryFile.getBlockFactor());
-        if (loadFactor > 0.75) { // Adjust threshold as needed
+        if (loadFactor > 0.75) {
             this.splitNextBucket();
         }
     }
@@ -170,7 +167,6 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         int bucketToSplit = this.nextSplit;
         int oldHead = this.bucketPointers.get(bucketToSplit);
 
-        // collect all records from chain
         List<T> all = new ArrayList<>();
         if (oldHead != -1) {
             int idx = oldHead;
@@ -194,22 +190,17 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
             }
         }
 
-        // create new bucket
         int newBucketIndex = this.bucketPointers.size();
         this.bucketPointers.add(-1);
 
-        // clear old chain: easiest option is to reuse the first block as the new head and set next=-1
-        if (oldHead == -1) {
-            int newHeadIdx = this.overflowFile.allocateEmptyBlock();
-            this.bucketPointers.set(bucketToSplit, newHeadIdx);
-        } else {
-            // reset first block
+        //ak nebol prazdny bucket, prepíšem ho na prázdny
+        if (oldHead != -1) {
             Block<T> primary = new Block<>(this.primaryFile.getRecordClass(), this.primaryFile.getBlockSize());
             this.primaryFile.writeBlockToFile(primary, oldHead);
             this.bucketPointers.set(bucketToSplit, oldHead);
         }
 
-        // redistribute records using i+1 bits
+        //rehashovanie a vloženie záznamov do správnych bucketov
         for (T rec : all) {
             long k = this.keyExtractor.apply(rec);
             long h = Math.abs(k);
@@ -234,13 +225,13 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
     private void insertIntoBucketNoSplit(int bucket, T record) {
         int head = this.bucketPointers.get(bucket);
         if (head == -1) {
-            HeapFile.BlockInsertResult result = this.primaryFile.insertRecordAsNewBlock(record, -1);
+            HeapFile.BlockInsertResult<T> result = this.primaryFile.insertRecordAsNewBlock(record, -1);
             this.bucketPointers.set(bucket, result.blockIndex);
             this.saveDirectory();
             return;
         }
 
-        // The head is always in primary file, subsequent blocks in overflow
+        //Najskôr primárny blok potom viem že sú len overflow bloky
         int currentIndex = head;
         boolean isPrimary = true;
 
@@ -261,8 +252,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
 
             int nextIndex = currentBlock.getNextBlockIndex();
             if (nextIndex == -1) {
-                // Add new overflow block
-                HeapFile.BlockInsertResult result = this.overflowFile.insertRecordAsNewBlock(record, -1);
+                HeapFile.BlockInsertResult<T> result = this.overflowFile.insertRecordAsNewBlock(record, -1);
                 currentBlock.setNextBlockIndex(result.blockIndex);
                 if (isPrimary) {
                     this.primaryFile.writeBlockToFile(currentBlock, currentIndex);
@@ -271,8 +261,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
                 }
                 return;
             }
-
-            // Move to next block (always overflow after head)
+            //další blok bude overflow
             currentIndex = nextIndex;
             isPrimary = false;
         }
