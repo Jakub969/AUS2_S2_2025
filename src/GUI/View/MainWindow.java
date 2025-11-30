@@ -35,7 +35,6 @@ public class MainWindow<T extends IRecord<T> & IHashable> extends JFrame {
 
         JPanel controlPanel = new JPanel(new GridLayout(3, 1));
 
-        // ---- INSERT ----
         JPanel insertPanel = new JPanel(new FlowLayout());
         this.insertField = new JTextField(20);
         JButton insertBtn = new JButton("Insert");
@@ -44,7 +43,6 @@ public class MainWindow<T extends IRecord<T> & IHashable> extends JFrame {
         insertPanel.add(this.insertField);
         insertPanel.add(insertBtn);
 
-        // ---- FIND ----
         JPanel findPanel = new JPanel(new FlowLayout());
         this.findField = new JTextField(20);
         JButton findBtn = new JButton("Find");
@@ -66,9 +64,6 @@ public class MainWindow<T extends IRecord<T> & IHashable> extends JFrame {
         this.add(bottomPanel, BorderLayout.SOUTH);
     }
 
-    // =============================
-    // INSERT
-    // =============================
     private void insertRecord() {
         String val = this.insertField.getText().trim();
         if (val.isEmpty()) {
@@ -77,9 +72,6 @@ public class MainWindow<T extends IRecord<T> & IHashable> extends JFrame {
         }
 
         try {
-            // Tu musíš vytvoriť objekt svojho typu T
-            // Napríklad: T r = (T) new Osoba(val); alebo new MyRecord(Integer.parseInt(val));
-            // Toto si doplň podľa skutočného record typu
             T record = this.createRecordFromString(val);
 
             this.file.insert(record);
@@ -90,9 +82,6 @@ public class MainWindow<T extends IRecord<T> & IHashable> extends JFrame {
         }
     }
 
-    // =============================
-    // FIND
-    // =============================
     private void findRecord() {
         String key = this.findField.getText().trim();
         if (key.isEmpty()) {
@@ -114,9 +103,6 @@ public class MainWindow<T extends IRecord<T> & IHashable> extends JFrame {
         }
     }
 
-    // =============================
-    // BUCKET VIEW
-    // =============================
     private void showBuckets() {
         this.outputArea.append("=== BUCKETS ===\n");
 
@@ -153,7 +139,6 @@ public class MainWindow<T extends IRecord<T> & IHashable> extends JFrame {
 
     private T createRecordFromString(String s) {
         try {
-            // VLOŽENIE: meno;priezvisko;dd.MM.yyyy;UUID
             if (s.contains(";")) {
                 String[] parts = s.split(";");
                 if (parts.length != 4) {
@@ -170,8 +155,6 @@ public class MainWindow<T extends IRecord<T> & IHashable> extends JFrame {
 
                 return (T) new Osoba(meno, priez, date, uuid);
             }
-
-            // FIND/DELETE: iba UUID
             return (T) Osoba.fromUUID(s);
 
         } catch (Exception ex) {

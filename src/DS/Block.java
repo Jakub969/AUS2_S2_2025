@@ -98,7 +98,6 @@ public class Block<T extends IRecord<T>> implements IByteOperation<T> {
         return this.blockSize;
     }
 
-    //pomocna metoda pre testovanie
     public IRecord<T> getRecordAt(int index) {
         return this.records[index];
     }

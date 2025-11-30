@@ -54,7 +54,6 @@ public class AppController<T extends IRecord<T> & IHashable> {
     private class LoadDataAction implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            // Load data into the linear hash file (implementation depends on your data source)
             AppController.this.outputArea.append("Data loaded into the linear hash file.\n");
         }
     }
@@ -62,7 +61,7 @@ public class AppController<T extends IRecord<T> & IHashable> {
     private class DisplayBucketsAction implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            AppController.this.outputArea.setText(""); // Clear previous output
+            AppController.this.outputArea.setText("");
             int numberOfBuckets = AppController.this.linearHashFile.getNumberOfBuckets();
             for (int i = 0; i < numberOfBuckets; i++) {
                 Block<T> block = AppController.this.linearHashFile.getBucket(i);

@@ -24,7 +24,7 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
     private final Function<T, Long> keyExtractor;
     private final Random random;
     private final List<IndexedRecord<T>> inserted;
-    private final Map<Long, T> expectedRecords; // Expected state: key -> record
+    private final Map<Long, T> expectedRecords;
     private final long seed;
 
     public HashFileTester(LinearHashFile<T> hashFile, Function<T, Long> keyExtractor, long seed) {
@@ -39,11 +39,9 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
     public void insertRecord(T record) {
         long key = this.keyExtractor.apply(record);
 
-        // Perform insertion
         this.hashFile.insert(record);
 
         long absKey = Math.abs(key);
-        // Update expected state
         this.expectedRecords.put(absKey, record.createCopy());
         this.inserted.add(new IndexedRecord<>(absKey, record.createCopy()));
 
@@ -109,8 +107,6 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
 
     private void validateState() {
         System.out.println("Validating state...");
-
-        // Check that all expected records are found in hash file
         for (Map.Entry<Long, T> entry : this.expectedRecords.entrySet()) {
             T expectedRecord = entry.getValue();
             T foundRecord = this.hashFile.find(expectedRecord);
@@ -124,7 +120,6 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
             }
         }
 
-        // Check that inserted list matches expected records
         if (this.inserted.size() != this.expectedRecords.size()) {
             throw new IllegalStateException("Validation failed: Inserted list size " + this.inserted.size() +
                     " doesn't match expected records size " + this.expectedRecords.size());
@@ -161,16 +156,10 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
     }
 
     private int countRecordsInBucket(int bucket) {
-        // This is a helper method that would need to be implemented based on your LinearHashFile structure
-        // You might need to add a method to LinearHashFile to count records per bucket
         int count = 0;
         try {
-            // Try to traverse the chain and count records
-            // This depends on your LinearHashFile implementation details
-            // You might need to add a method like getBucketRecordCount(int bucket) to LinearHashFile
             count = this.hashFile.getBucketRecordCount(bucket);
         } catch (Exception e) {
-            // If we can't count, return -1
             return -1;
         }
         return count;
