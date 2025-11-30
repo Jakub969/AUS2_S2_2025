@@ -118,7 +118,6 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
             this.saveDirectory();
             return;
         }
-        System.out.println("Insert into bucket " + bucket + ", head block index: " + headBlockIndex);
         HeapFile.BlockInsertResult<T> result = this.primaryFile.insertRecordWithMetadata(record, headBlockIndex, -1);
 
         if (result.blockIndex == -1) {
