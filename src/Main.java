@@ -1,10 +1,7 @@
-import DS.HeapFile;
 import DS.LinearHashFile;
-import GUI.Controller.AppController;
 import GUI.View.MainWindow;
 import Tester.HashFileTester;
-import Tester.HeapFileTester;
-import Tester.Osoba;
+import Data.Osoba;
 
 public class Main {
     public static void main(String[] args) {
@@ -45,7 +42,7 @@ public class Main {
         );
 
         // Perform random operations
-        tester.performRandomOperations(1000);
+        tester.performRandomOperations(150);
 
         // Print final bucket distribution
         tester.printBucketDistribution();

@@ -1,4 +1,4 @@
-package Tester;
+package Data;
 
 import Interface.IHashable;
 import Interface.IRecord;
@@ -130,7 +130,12 @@ public class Osoba implements IRecord<Osoba>, IHashable {
 
     @Override
     public String toString() {
-        return this.meno + " " + this.priezvisko + " " + this.datumNarodenia + " " + this.UUID;
+        return "Osoba{" +
+                "meno='" + meno + '\'' +
+                ", priezvisko='" + priezvisko + '\'' +
+                ", datumNarodenia=" + datumNarodenia +
+                ", UUID='" + UUID + '\'' +
+                '}';
     }
 
     public static Osoba fromUUID(String uuid) {

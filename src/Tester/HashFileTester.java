@@ -1,6 +1,7 @@
 package Tester;
 
 import DS.LinearHashFile;
+import Data.Osoba;
 import Interface.IRecord;
 import Interface.IHashable;
 

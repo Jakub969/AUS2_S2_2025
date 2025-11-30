@@ -2,6 +2,7 @@ package Tester;
 
 import DS.Block;
 import DS.HeapFile;
+import Data.Osoba;
 import Interface.IRecord;
 
 import java.util.*;

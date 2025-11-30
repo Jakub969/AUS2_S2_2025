@@ -8,7 +8,7 @@ import DS.LinearHashFile;
 import DS.Block;
 import Interface.IRecord;
 import Interface.IHashable;
-import Tester.Osoba;
+import Data.Osoba;
 
 public class MainWindow<T extends IRecord<T> & IHashable> extends JFrame {
 
