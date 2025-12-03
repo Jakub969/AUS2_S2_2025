@@ -67,26 +67,25 @@ public class HeapFile<T extends IRecord<T>> {
     }
 
     public BlockInsertResult<T> insertRecordWithMetadata(T record,int blockIndex, int nextBlock) {
-        if (!this.partiallyEmptyBlocks.isEmpty()) {
-            this.partiallyEmptyBlocks.remove(Integer.valueOf(blockIndex));
-        } else if (!this.emptyBlocks.isEmpty()) {
-            this.emptyBlocks.remove(Integer.valueOf(blockIndex));
+        if (blockIndex < this.totalBlocks) {
+            if(!this.partiallyEmptyBlocks.isEmpty()) {
+                this.partiallyEmptyBlocks.remove(Integer.valueOf(blockIndex));
+            }
+            ChainedBlock block = (ChainedBlock) this.getBlock(blockIndex);
+            if (block.getValidCount() == block.getBlockFactor()) {
+                return new BlockInsertResult<>(-1, block); // Indikácia, že blok je plný a nie je možné vložiť záznam
+            }
+            block.setNextBlockIndex(nextBlock);
+            block.addRecord(record);
+            this.updateListsAfterInsert(blockIndex, block);
+            this.writeBlockToFile(block, blockIndex);
+            this.totalRecords++;
+            this.saveLists();
+            this.saveHeader();
+            return new BlockInsertResult<>(blockIndex, block);
+        } else {
+            return this.insertRecordAsNewBlock(record, nextBlock);
         }
-        Block<T> block = this.getBlock(blockIndex);
-        if (block. getValidCount() == block.getBlockFactor()) {
-            return new BlockInsertResult<>(-1, block); // Indikácia, že blok je plný a nie je možné vložiť záznam
-        }
-        block.setNextBlockIndex(nextBlock);
-        block.addRecord(record);
-        this.updateListsAfterInsert(blockIndex, block);
-        this.writeBlockToFile(block, blockIndex);
-        if (blockIndex == this.totalBlocks) {
-            this.totalBlocks++;
-        }
-        this.totalRecords++;
-        this.saveLists();
-        this.saveHeader();
-        return new BlockInsertResult<>(blockIndex, block);
     }
 
     public BlockInsertResult<T> insertRecordAsNewBlock(T record, int nextBlock) {
@@ -98,11 +97,11 @@ public class HeapFile<T extends IRecord<T>> {
             blockIndex = this.totalBlocks;
         }
 
-        Block<T> block;
+        ChainedBlock block;
         if (blockIndex < this.totalBlocks) {
-            block = this.getBlock(blockIndex);
+            block = (ChainedBlock) this.getBlock(blockIndex);
         } else {
-            block = new Block<>(this.recordClass, this.blockSize);
+            block = new ChainedBlock(this.recordClass, this.blockSize);
         }
 
         block.addRecord(record);
@@ -134,8 +133,8 @@ public class HeapFile<T extends IRecord<T>> {
         int currentIndex = startBlockIndex;
 
         while (currentIndex != -1) {
-            Block<T> block = this.getBlock(currentIndex);
-            T found = block.getCopyOfRecord(recordTemplate);
+            ChainedBlock block = (ChainedBlock) this.getBlock(currentIndex);
+            T found = (T) block.getCopyOfRecord(recordTemplate);
             if (found != null) {
                 return found;
             }
@@ -182,7 +181,7 @@ public class HeapFile<T extends IRecord<T>> {
         }
     }
 
-    private void updateListsAfterDelete(int index, Block<T> block) {
+    public void updateListsAfterDelete(int index, Block<T> block) {
         if (block.getValidCount() == 0) {
             this.emptyBlocks.add(index);
             this.partiallyEmptyBlocks.remove(Integer.valueOf(index));
@@ -237,7 +236,7 @@ public class HeapFile<T extends IRecord<T>> {
     }
 
     public int getNextBlockIndex(int blockIndex) {
-        Block<T> block = this.getBlock(blockIndex);
+        ChainedBlock block = (ChainedBlock) this.getBlock(blockIndex);
         return block.getNextBlockIndex();
     }
 
