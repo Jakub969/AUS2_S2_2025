@@ -68,7 +68,7 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
         return blockIndex;
     }
 
-    public BlockInsertResult<T> insertRecordWithMetadata(T record,int blockIndex, int nextBlock) {
+    public BlockInsertResult<T> insertRecordWithMetadata(T record,int blockIndex) {
         if (blockIndex < this.totalBlocks) {
             if(!this.partiallyEmptyBlocks.isEmpty()) {
                 this.partiallyEmptyBlocks.remove(Integer.valueOf(blockIndex));
@@ -77,7 +77,6 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
             if (block.getValidCount() == block.getBlockFactor()) {
                 return new BlockInsertResult<>(-1, block); // Indikácia, že blok je plný a nie je možné vložiť záznam
             }
-            block.setNextBlockIndex(nextBlock);
             block.addRecord(record);
             this.updateListsAfterInsert(blockIndex, (B) block);
             this.writeBlockToFile((B) block, blockIndex);
@@ -86,11 +85,11 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
             this.saveHeader();
             return new BlockInsertResult<>(blockIndex, block);
         } else {
-            return this.insertRecordAsNewBlock(record, nextBlock);
+            return this.insertRecordAsNewBlock(record);
         }
     }
 
-    public BlockInsertResult<T> insertRecordAsNewBlock(T record, int nextBlock) {
+    public BlockInsertResult<T> insertRecordAsNewBlock(T record) {
         int blockIndex;
         // Použiť iba emptyBlocks alebo nový blok na konci
         if (!this.emptyBlocks.isEmpty()) {
@@ -108,7 +107,6 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
 
         block.addRecord(record);
         this.updateListsAfterInsert(blockIndex, (B) block);
-        block.setNextBlockIndex(nextBlock);
         this.writeBlockToFile((B) block, blockIndex);
 
         if (blockIndex == this.totalBlocks) {
@@ -345,6 +343,10 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
             }
         }
         this.totalBlocks = initialBuckets;
+    }
+
+    public void incrementTotalBlocks() {
+        this.totalBlocks++;
     }
 
     public static class BlockInsertResult<T extends IRecord<T>> {
