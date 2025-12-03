@@ -5,24 +5,26 @@ import Interface.IRecord;
 import java.io.*;
 import java.util.*;
 
-public class HeapFile<T extends IRecord<T>> {
+public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
     private final File dataFile;
     private final File emptyBlocksFile;
     private final File partialBlocksFile;
     private final File headerFile;
     private final Class<T> recordClass;
+    private final Class<B> blockClass;
     private final int blockSize;
     private final LinkedList<Integer> emptyBlocks;
     private final LinkedList<Integer> partiallyEmptyBlocks;
     private int totalBlocks;
     private int totalRecords;
 
-    public HeapFile(String baseFileName, Class<T> recordClass, int blockSize) {
+    public HeapFile(String baseFileName, Class<T> recordClass, Class<B> blockClass, int blockSize) {
         this.dataFile = new File(baseFileName);
         this.emptyBlocksFile = new File(baseFileName + "_empty.txt");
         this.partialBlocksFile = new File(baseFileName + "_partial.txt");
         this.headerFile = new File(baseFileName + "_header.txt");
         this.recordClass = recordClass;
+        this.blockClass = blockClass;
         this.blockSize = blockSize;
         this.emptyBlocks = new LinkedList<>();
         this.partiallyEmptyBlocks = new LinkedList<>();
@@ -46,11 +48,11 @@ public class HeapFile<T extends IRecord<T>> {
             blockIndex = this.totalBlocks;
         }
 
-        Block<T> block;
+        B block;
         if (blockIndex < this.totalBlocks) {
             block = this.getBlock(blockIndex);
         } else {
-            block = new Block<>(this.recordClass, this.blockSize);
+            block = this.createBlock();
         }
 
         block.addRecord(record);
@@ -77,8 +79,8 @@ public class HeapFile<T extends IRecord<T>> {
             }
             block.setNextBlockIndex(nextBlock);
             block.addRecord(record);
-            this.updateListsAfterInsert(blockIndex, block);
-            this.writeBlockToFile(block, blockIndex);
+            this.updateListsAfterInsert(blockIndex, (B) block);
+            this.writeBlockToFile((B) block, blockIndex);
             this.totalRecords++;
             this.saveLists();
             this.saveHeader();
@@ -105,9 +107,9 @@ public class HeapFile<T extends IRecord<T>> {
         }
 
         block.addRecord(record);
-        this.updateListsAfterInsert(blockIndex, block);
+        this.updateListsAfterInsert(blockIndex, (B) block);
         block.setNextBlockIndex(nextBlock);
-        this.writeBlockToFile(block, blockIndex);
+        this.writeBlockToFile((B) block, blockIndex);
 
         if (blockIndex == this.totalBlocks) {
             this.totalBlocks++;
@@ -125,7 +127,7 @@ public class HeapFile<T extends IRecord<T>> {
             return null;
         }
 
-        Block<T> block = this.getBlock(index);
+        B block = this.getBlock(index);
         return block.getCopyOfRecord(record);
     }
 
@@ -148,7 +150,7 @@ public class HeapFile<T extends IRecord<T>> {
             return false;
         }
 
-        Block<T> block = this.getBlock(index);
+        B block = this.getBlock(index);
         T removed = block.removeRecord(record);
 
         if (removed == null) {
@@ -165,7 +167,7 @@ public class HeapFile<T extends IRecord<T>> {
         return true;
     }
 
-    private void updateListsAfterInsert(int index, Block<T> block) {
+    private void updateListsAfterInsert(int index, B block) {
         if (block.getValidCount() == block.getBlockFactor()) {
             this.partiallyEmptyBlocks.remove(Integer.valueOf(index));
         } else if (block.getValidCount() > 0 && block.getValidCount() < block.getBlockFactor()) {
@@ -181,7 +183,7 @@ public class HeapFile<T extends IRecord<T>> {
         }
     }
 
-    public void updateListsAfterDelete(int index, Block<T> block) {
+    public void updateListsAfterDelete(int index, B block) {
         if (block.getValidCount() == 0) {
             this.emptyBlocks.add(index);
             this.partiallyEmptyBlocks.remove(Integer.valueOf(index));
@@ -212,7 +214,7 @@ public class HeapFile<T extends IRecord<T>> {
         this.saveHeader();
     }
 
-    public void writeBlockToFile(Block<T> block, int blockIndex) {
+    public void writeBlockToFile(B block, int blockIndex) {
         byte[] blockData = block.toByteArray();
         try (RandomAccessFile raf = new RandomAccessFile(this.dataFile, "rw")) {
             raf.seek((long) blockIndex * this.blockSize);
@@ -222,17 +224,29 @@ public class HeapFile<T extends IRecord<T>> {
         }
     }
 
-    public Block<T> getBlock(int blockIndex) {
-        Block<T> block = new Block<>(this.recordClass, this.blockSize);
-        try (RandomAccessFile raf = new RandomAccessFile(this.dataFile, "r")) {
-            raf.seek((long) blockIndex * this.blockSize);
-            byte[] bytes = new byte[this.blockSize];
-            raf.readFully(bytes);
-            block.fromByteArray(bytes);
-        } catch (IOException e) {
+    public B getBlock(int blockIndex) {
+        try {
+            B block = this.createBlock();
+            try (RandomAccessFile raf = new RandomAccessFile(this.dataFile, "r")) {
+                raf.seek((long) blockIndex * this.blockSize);
+                byte[] bytes = new byte[this.blockSize];
+                raf.readFully(bytes);
+                block.fromByteArray(bytes);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            return block;
+        } catch (RuntimeException e) {
             throw new RuntimeException(e);
         }
-        return block;
+    }
+
+    private B createBlock() {
+        try {
+            return this.blockClass.getDeclaredConstructor(Class.class, int.class).newInstance(this.recordClass, this.blockSize);
+        } catch (Exception e) {
+            throw new RuntimeException("Error creating block instance", e);
+        }
     }
 
     public int getNextBlockIndex(int blockIndex) {
@@ -312,12 +326,25 @@ public class HeapFile<T extends IRecord<T>> {
     }
 
     public int getBlockFactor() {
-        Block<T> tempBlock = new Block<>(this.recordClass, this.blockSize);
+        B tempBlock = this.createBlock();
         return tempBlock.getBlockFactor();
     }
 
     public Class<T> getRecordClass() {
         return this.recordClass;
+    }
+
+    public void alocateBlocks(int initialBuckets) {
+        for (int i = 0; i < initialBuckets; i++) {
+            byte[] blockData = this.createBlock().toByteArray();
+            try (RandomAccessFile raf = new RandomAccessFile(this.dataFile, "rw")) {
+                raf.seek((long) i * this.blockSize);
+                raf.write(blockData);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        this.totalBlocks = initialBuckets;
     }
 
     public static class BlockInsertResult<T extends IRecord<T>> {

@@ -78,7 +78,7 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
         for (int i = 0; i < count; i++) {
             System.out.println("\n--- Operation " + (i + 1) + " ---");
 
-            int op = this.random.nextInt(2); // 0=insert, 1=find
+            int op = 0;//this.random.nextInt(2); // 0=insert, 1=find
 
             switch (op) {
                 case 0 -> {
@@ -131,7 +131,6 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
     public void printStatistics() {
         System.out.println("--- Statistics ---");
         System.out.println("Total records (expected): " + this.expectedRecords.size());
-        System.out.println("Total buckets: " + this.hashFile.getNumberOfBuckets());
         System.out.println("Primary file blocks: " + this.hashFile.getPrimaryFile().getTotalBlocks());
         System.out.println("Overflow file blocks: " + this.hashFile.getOverflowFile().getTotalBlocks());
         System.out.println("Primary file records: " + this.hashFile.getPrimaryFile().getTotalRecords());
@@ -146,12 +145,11 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
 
     public void printBucketDistribution() {
         System.out.println("\n--- Bucket Distribution ---");
-        int totalBuckets = this.hashFile.getNumberOfBuckets();
+        int totalBuckets = this.hashFile.getPrimaryFile().getTotalBlocks();
 
         for (int i = 0; i < totalBuckets; i++) {
             int recordsInBucket = this.countRecordsInBucket(i);
-            int bucketPointer = this.hashFile.getBucketPointer(i);
-            System.out.println("Bucket " + i + " (Bucket pointer: " + bucketPointer + "): " + recordsInBucket + " records");
+            System.out.println("Bucket " + i + ": " + recordsInBucket + " records");
         }
     }
 

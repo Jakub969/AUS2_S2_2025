@@ -19,12 +19,12 @@ public class HeapFileTester<T extends IRecord<T>> {
         }
     }
 
-    private final HeapFile<T> heapFile;
+    private final HeapFile<Block<T>,T> heapFile;
     private final List<List<IRecord<T>>> expectedBlocks;
     private final Random random;
     private final List<IndexedRecord<T>> inserted;
 
-    public HeapFileTester(HeapFile<T> heapFile, long seed) {
+    public HeapFileTester(HeapFile<Block<T>,T> heapFile, long seed) {
         this.heapFile = heapFile;
         this.expectedBlocks = new ArrayList<>();
         this.random = new Random(seed);

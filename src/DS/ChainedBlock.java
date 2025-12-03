@@ -5,18 +5,19 @@ import Interface.IRecord;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 
-public class ChainedBlock extends Block {
+public class ChainedBlock<T extends IRecord<T>> extends Block<T> {
     private int nextBlockIndex;
 
-    public ChainedBlock(Class recordType, int sizeOfBlock) {
+    public ChainedBlock(Class<T> recordType, int sizeOfBlock) {
         super(recordType, sizeOfBlock);
-        int actualSizeOfBlock = sizeOfBlock - (2*Integer.BYTES);
-        this.blockFactor = actualSizeOfBlock / this.recordSize;
         this.nextBlockIndex = -1;
+        int actualSizeForRecords = this.blockSize - (2 * Integer.BYTES);
+        this.blockFactor = actualSizeForRecords / this.recordSize;
+        this.records = new IRecord[this.blockFactor];
     }
 
     @Override
-    public IRecord fromByteArray(byte[] bytesArray) {
+    public T fromByteArray(byte[] bytesArray) {
         this.clearBlock();
         ByteArrayInputStream hlpByteArrayInputStream = new ByteArrayInputStream(bytesArray);
         DataInputStream hlpInStream = new DataInputStream(hlpByteArrayInputStream);
@@ -26,8 +27,8 @@ public class ChainedBlock extends Block {
             for (int i = 0; i < this.blockFactor; i++) {
                 byte[] recordBytes = new byte[this.recordSize];
                 hlpInStream.read(recordBytes);
-                IRecord recordInstance = (IRecord) this.recordType.getDeclaredConstructor().newInstance();
-                IRecord record = (IRecord) recordInstance.fromByteArray(recordBytes);
+                T recordInstance = this.recordType.getDeclaredConstructor().newInstance();
+                IRecord<T> record = recordInstance.fromByteArray(recordBytes);
                 this.records[i] = record;
             }
             return null;
@@ -80,5 +81,10 @@ public class ChainedBlock extends Block {
 
     public void setValidCount(int validCount) {
         this.validCount = validCount;
+    }
+
+    @Override
+    public int getBlockFactor() {
+        return this.blockFactor;
     }
 }

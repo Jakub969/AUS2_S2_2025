@@ -1,5 +1,4 @@
 import DS.LinearHashFile;
-import GUI.View.MainWindow;
 import Tester.HashFileTester;
 import Data.Osoba;
 
@@ -42,8 +41,5 @@ public class Main {
 
         tester.performRandomOperations(150);
         tester.printBucketDistribution();
-
-        /*MainWindow<Osoba> mainWindow = new MainWindow<>(hashFile);
-        mainWindow.setVisible(true);*/
     }
 }

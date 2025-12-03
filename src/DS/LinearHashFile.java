@@ -8,8 +8,8 @@ import java.util.*;
 import java.util.function.Function;
 
 public class LinearHashFile<T extends IRecord<T> & IHashable> {
-    private final HeapFile<T> primaryFile;
-    private final HeapFile<T> overflowFile;
+    private final HeapFile<ChainedBlock<T>, T> primaryFile;
+    private final HeapFile<ChainedBlock<T>, T> overflowFile;
     private final Function<T, Long> keyExtractor;
 
     private int i; //aktualna uroven (u)
@@ -20,8 +20,11 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         if (initialBuckets <= 0 || (initialBuckets & (initialBuckets - 1)) != 0) {
             throw new IllegalArgumentException("initialBuckets must be power of two and > 0");
         }
-        this.primaryFile = new HeapFile<>(primaryFileName, recordClass, blockSizePrimary);
-        this.overflowFile = new HeapFile<>(overflowFileName, recordClass, blockSizeOverflow);
+
+        @SuppressWarnings("unchecked")
+        Class<ChainedBlock<T>> chainedBlockClass = (Class<ChainedBlock<T>>) (Class<?>) ChainedBlock.class;
+        this.primaryFile = new HeapFile<>(primaryFileName, recordClass, chainedBlockClass ,blockSizePrimary);
+        this.overflowFile = new HeapFile<>(overflowFileName, recordClass,chainedBlockClass, blockSizeOverflow);
         this.keyExtractor = keyExtractor;
         this.dirFile = new File(primaryFileName + "_dir.txt");
 
@@ -31,6 +34,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         if (this.dirFile.exists()) {
             this.loadDirectory();
         } else {
+            this.primaryFile.alocateBlocks(initialBuckets);
             this.saveDirectory();
         }
     }
@@ -73,21 +77,17 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         long key = this.keyExtractor.apply(record);
         int bucket = this.bucketForKey(key);
 
-        T found = this.primaryFile.findRecord(bucket, record);
-        if (found != null) {
-            return found;
-        }
-
-        int currentIndex = bucket;
-        while (currentIndex != -1) {
-            ChainedBlock block = (ChainedBlock) this.primaryFile.getBlock(currentIndex);
-            int nextIndex = block.getNextBlockIndex();
-            if (nextIndex != -1) {
-                return this.overflowFile.findInChain(nextIndex, record);
+        ChainedBlock block = this.primaryFile.getBlock(bucket);
+        for (int r = 0; r < block.getValidCount(); r++) {
+            IRecord<T> rec = block.getRecordAt(r);
+            if (rec != null && rec.isEqual(record)) {
+                return rec.createCopy();
             }
-            currentIndex = nextIndex;
         }
-
+        int nextIndex = block.getNextBlockIndex();
+        if (nextIndex != -1) {
+            return this.overflowFile.findInChain(nextIndex, record);
+        }
         return null;
     }
 
@@ -97,12 +97,23 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         if (result.blockIndex == -1) {
             ChainedBlock b = (ChainedBlock) result.block;
             int currentIndex = bucket;
+            boolean isPrimary = true;
             // najdenie posledneho bloku v retazci
             while (b.getNextBlockIndex() != -1 && b.getValidCount() == b.getBlockFactor()) {
                 currentIndex = b.getNextBlockIndex();
-                b = (ChainedBlock) this.overflowFile.getBlock(currentIndex);
+                b = this.overflowFile.getBlock(currentIndex);
+                isPrimary = false;
             }
-            this.overflowFile.insertRecordWithMetadata(record, currentIndex, b.getNextBlockIndex());
+            if (isPrimary) {
+                HeapFile.BlockInsertResult<T> newResult = this.overflowFile.insertRecordWithMetadata(record, currentIndex, -1);
+                b.setNextBlockIndex(newResult.blockIndex);
+                this.primaryFile.writeBlockToFile(b, bucket);
+            } else {
+                HeapFile.BlockInsertResult<T> newResult = this.overflowFile.insertRecordWithMetadata(record, currentIndex, b.getNextBlockIndex());
+                b.setNextBlockIndex(newResult.blockIndex);
+                this.overflowFile.writeBlockToFile(b, currentIndex);
+            }
+
         }
         this.splitNextBucketIfNeeded();
     }
@@ -120,7 +131,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         List<T> all = new ArrayList<>();
 
         int index = bucketToSplit;
-        ChainedBlock b = (ChainedBlock) this.primaryFile.getBlock(index);
+        ChainedBlock b = this.primaryFile.getBlock(index);
         for (int r = 0; r < b.getValidCount(); r++) {
             IRecord<T> rec = b.getRecordAt(r);
             if (rec != null) {
@@ -129,7 +140,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         }
         index = b.getNextBlockIndex();
         while (index != -1) {
-            b = (ChainedBlock) this.overflowFile.getBlock(index);
+            b = this.overflowFile.getBlock(index);
             for (int r = 0; r < b.getValidCount(); r++) {
                 IRecord<T> rec = b.getRecordAt(r);
                 if (rec != null) {
@@ -160,10 +171,10 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         }
 
         if(!oldBacketRecords.isEmpty()) {
-            this.insertIntoBucketNoSplit(bucketToSplit, oldBacketRecords);
+            this.insertIntoBucketNoSplit(bucketToSplit, oldBacketRecords, true);
         }
         if(!newBacketRecords.isEmpty()) {
-            this.insertIntoBucketNoSplit(newBucketIndex, newBacketRecords);
+            this.insertIntoBucketNoSplit(newBucketIndex, newBacketRecords, false);
         }
 
         this.nextSplit++;
@@ -175,15 +186,19 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         this.saveDirectory();
     }
 
-    private void insertIntoBucketNoSplit(int bucket, LinkedList<T> records) {
-        List<Block<T>> chain = new ArrayList<>();
+    private void insertIntoBucketNoSplit(int bucket, LinkedList<T> records, boolean isOldBucket) {
+        List<ChainedBlock> chain = new ArrayList<>();
         List<Integer> indices = new ArrayList<>();
         List<Boolean> isPrimaryList = new ArrayList<>();
 
         int currentIndex = bucket;
         boolean isPrimary = true;
         while (currentIndex != -1) {
-            ChainedBlock currentBlock = (ChainedBlock) (isPrimary ? this.primaryFile.getBlock(currentIndex) : this.overflowFile.getBlock(currentIndex));
+            ChainedBlock currentBlock = isPrimary ? this.primaryFile.getBlock(currentIndex) : this.overflowFile.getBlock(currentIndex);
+            if (isOldBucket && isPrimary) {
+                currentBlock.setValidCount(0);
+                currentBlock.setNextBlockIndex(-1);
+            }
             chain.add(currentBlock);
             indices.add(currentIndex);
             isPrimaryList.add(isPrimary);
@@ -201,9 +216,9 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
             }
 
             if (blockIsPrimary) {
-                this.primaryFile.writeBlockToFile(block, index);
+                this.primaryFile.writeBlockToFile((ChainedBlock<T>) block, index);
             } else {
-                this.overflowFile.writeBlockToFile(block, index);
+                this.overflowFile.writeBlockToFile((ChainedBlock<T>) block, index);
             }
 
             if (records.isEmpty()) {
@@ -220,7 +235,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
             while (res.block.getValidCount() < res.block.getBlockFactor() && !records.isEmpty()) {
                 res.block.addRecord(records.removeFirst());
             }
-            this.overflowFile.writeBlockToFile(res.block, res.blockIndex);
+            this.overflowFile.writeBlockToFile((ChainedBlock<T>) res.block, res.blockIndex);
 
             lastBlock.setNextBlockIndex(res.blockIndex);
             if (lastIsPrimary) {
@@ -239,11 +254,11 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         return this.primaryFile.getBlock(i);
     }
 
-    public HeapFile<T> getPrimaryFile() {
+    public HeapFile<ChainedBlock<T>,T> getPrimaryFile() {
         return this.primaryFile;
     }
 
-    public HeapFile<T> getOverflowFile() {
+    public HeapFile<ChainedBlock<T>,T> getOverflowFile() {
         return this.overflowFile;
     }
 

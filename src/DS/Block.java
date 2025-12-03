@@ -9,7 +9,7 @@ import java.util.Arrays;
 
 public class Block<T extends IRecord<T>> implements IByteOperation<T> {
     protected int validCount;
-    protected final IRecord<T>[] records;
+    protected IRecord<T>[] records;
     protected int blockFactor;
     protected final Class<T> recordType;
     protected int recordSize;
