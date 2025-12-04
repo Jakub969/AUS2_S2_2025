@@ -250,10 +250,13 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
 
     private void updateBucketValidCount(int blockIndex, ArrayList<ChainedBlock<T>> oldChain) {
         ArrayList<Integer> nextBLockPointers = new ArrayList<>();
+        int previousPrimaryRecords = oldChain.getFirst().getValidCount();
+        int previousOverflowRecords = 0;
         for (int j = 0; j < oldChain.size(); j++) {
             oldChain.get(j).setValidCount(0);
             if (j > 0) {
                 this.overflowFile.updateListsAfterDelete(nextBLockPointers.get(j - 1), oldChain.get(j));
+                previousOverflowRecords += oldChain.get(j).getValidCount();
             }
             nextBLockPointers.add(oldChain.get(j).getNextBlockIndex());
             oldChain.get(j).setNextBlockIndex(-1);
@@ -264,7 +267,13 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
                 this.overflowFile.writeBlockToFile(oldChain.getFirst(), nextBLockPointers.get(i));
             }
         }
+        int totalRecords = this.primaryFile.getTotalRecords();
+        this.primaryFile.setTotalRecords(totalRecords - previousPrimaryRecords);
+        totalRecords = this.overflowFile.getTotalRecords();
+        this.overflowFile.setTotalRecords(totalRecords - previousOverflowRecords);
         this.overflowFile.trimTrailingEmptyBlocks();
+        this.primaryFile.saveHeader();
+        this.overflowFile.saveHeader();
     }
 
     private void insertIntoBucketNoSplit(int bucket, LinkedList<T> records) {
