@@ -345,6 +345,10 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
         this.totalBlocks = initialBuckets;
     }
 
+    public void setTotalRecords(int totalRecords) {
+        this.totalRecords = totalRecords;
+    }
+
     public void incrementTotalBlocks() {
         this.totalBlocks++;
     }
