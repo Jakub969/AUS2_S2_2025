@@ -228,8 +228,10 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         }
         this.primaryFile.writeBlockToFile(oldChain.getFirst(), blockIndex);
         for (int j = 1; j < oldChain.size(); j++) {
-            if (oldChain.get(j).getValidCount() <= oldChain.get(j).getBlockFactor() && oldChain.get(j).getValidCount() > 0) {
-                oldChain.get(j).setNextBlockIndex(nextBLockPointers.get(j));
+            if (j+1 < oldChain.size()) {
+                if (oldChain.get(j+1).getValidCount() <= oldChain.get(j+1).getBlockFactor() && oldChain.get(j+1).getValidCount() > 0) {
+                    oldChain.get(j).setNextBlockIndex(nextBLockPointers.get(j));
+                }
             }
             this.overflowFile.writeBlockToFile(oldChain.get(j), nextBLockPointers.get(j - 1));
         }
