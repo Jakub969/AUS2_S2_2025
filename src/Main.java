@@ -39,7 +39,7 @@ public class Main {
                 seed
         );
 
-        tester.performRandomOperations(150);
+        tester.performRandomOperations(1500);
         tester.printBucketDistribution();
     }
 }

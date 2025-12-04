@@ -261,7 +261,7 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
         }
     }
 
-    private void saveHeader() {
+    void saveHeader() {
         try (PrintWriter pw = new PrintWriter(new FileWriter(this.headerFile))) {
             pw.println(this.totalBlocks);
             pw.println(this.totalRecords);
@@ -281,7 +281,7 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
     }
 
 
-    private void saveLists() {
+    void saveLists() {
         this.saveListToFile(this.emptyBlocksFile, this.emptyBlocks);
         this.saveListToFile(this.partialBlocksFile, this.partiallyEmptyBlocks);
     }
@@ -347,6 +347,10 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
 
     public void incrementTotalBlocks() {
         this.totalBlocks++;
+    }
+
+    public void incrementTotalRecords() {
+        this.totalRecords++;
     }
 
     public static class BlockInsertResult<T extends IRecord<T>> {
