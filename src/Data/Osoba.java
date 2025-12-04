@@ -4,6 +4,7 @@ import Interface.IHashable;
 import Interface.IRecord;
 
 import java.io.*;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
 
@@ -130,11 +131,13 @@ public class Osoba implements IRecord<Osoba>, IHashable {
 
     @Override
     public String toString() {
+        SimpleDateFormat formatter = new SimpleDateFormat("dd.MM.yyyy");
+        String formattedDate = formatter.format(datumNarodenia);
         return "Osoba{" +
-                "meno='" + meno + '\'' +
-                ", priezvisko='" + priezvisko + '\'' +
-                ", datumNarodenia=" + datumNarodenia +
-                ", UUID='" + UUID + '\'' +
+                meno +
+                ";" + priezvisko  +
+                ";" + formattedDate +
+                ";" + UUID +
                 '}';
     }
 
