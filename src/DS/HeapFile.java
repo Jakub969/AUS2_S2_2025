@@ -349,10 +349,6 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
         this.totalBlocks++;
     }
 
-    public void incrementTotalRecords() {
-        this.totalRecords++;
-    }
-
     public static class BlockInsertResult<T extends IRecord<T>> {
         public final int blockIndex;
         public final Block<T> block;

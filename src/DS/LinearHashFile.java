@@ -190,9 +190,12 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
             this.updateBucketValidCount(blockIndex, oldChain);
             return;
         }
-
+        int overflowRecords = 0;
         int overflowIndex = -1;
         for (int j = 0; j < oldChain.size(); j++) {
+            if (j > 0) {
+                overflowRecords += oldChain.get(j).getValidCount();
+            }
             oldChain.get(j).setValidCount(0);
             while (oldChain.get(j).getValidCount() < oldChain.get(j).getBlockFactor() && !oldBacketRecords.isEmpty()) {
                 oldChain.get(j).addRecord(oldBacketRecords.removeFirst());
@@ -221,9 +224,11 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
                 int tempNext = overflowNextIndex;
                 overflowNextIndex = oldChain.get(j).getNextBlockIndex();
                 oldChain.get(j).setNextBlockIndex(-1);
-                this.overflowFile.updateListsAfterDelete(tempNext, oldChain.get(j));
+                this.overflowFile.writeBlockToFile(oldChain.get(j), tempNext);
             }
         }
+        this.primaryFile.saveHeader();
+        this.overflowFile.saveHeader();
     }
 
     private void updateBucketValidCount(int blockIndex, ArrayList<ChainedBlock<T>> oldChain) {
@@ -248,7 +253,6 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         this.primaryFile.incrementTotalBlocks();
         while (block.getValidCount() < block.getBlockFactor() && !records.isEmpty()) {
             block.addRecord(records.removeFirst());
-            this.primaryFile.incrementTotalRecords();
         }
         if (records.isEmpty()) {
             this.primaryFile.writeBlockToFile(block, bucket);
@@ -263,7 +267,6 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
             ChainedBlock<T> overflowBlock = new ChainedBlock<>(this.overflowFile.getRecordClass(), this.overflowFile.getBlockSize());
             while (overflowBlock.getValidCount() < overflowBlock.getBlockFactor() && !records.isEmpty()) {
                 overflowBlock.addRecord(records.removeFirst());
-                this.overflowFile.incrementTotalRecords();
             }
             int overflowBlockIndex = this.overflowFile.getTotalBlocks();
             this.overflowFile.writeBlockToFile(overflowBlock, overflowBlockIndex);
