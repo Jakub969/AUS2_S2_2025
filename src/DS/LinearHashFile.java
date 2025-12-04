@@ -214,6 +214,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         if (oldChain.size() > 1) {
             while (oldChain.get(i).getValidCount() < oldChain.get(i).getBlockFactor() && !oldBacketRecords.isEmpty()) {
                 oldChain.get(i).addRecord(oldBacketRecords.removeFirst());
+                this.overflowFile.updateListsAfterInsert(nextBLockPointers.get(i - 1), oldChain.get(i));
                 newOverflowRecords++;
                 if (oldChain.get(i).getValidCount() == oldChain.get(i).getBlockFactor()) {
                     i++;
@@ -221,13 +222,13 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
             }
         }
         if (oldChain.size() > 1) {
-            if (oldChain.get(1).getValidCount() < oldChain.get(1).getBlockFactor()) {
+            if (oldChain.get(1).getValidCount() <= oldChain.get(1).getBlockFactor() && oldChain.get(1).getValidCount() > 0) {
                 oldChain.getFirst().setNextBlockIndex(nextBLockPointers.getFirst());
             }
         }
         this.primaryFile.writeBlockToFile(oldChain.getFirst(), blockIndex);
         for (int j = 1; j < oldChain.size(); j++) {
-            if (oldChain.get(j).getValidCount() < oldChain.get(j).getBlockFactor()) {
+            if (oldChain.get(j).getValidCount() <= oldChain.get(j).getBlockFactor() && oldChain.get(j).getValidCount() > 0) {
                 oldChain.get(j).setNextBlockIndex(nextBLockPointers.get(j));
             }
             this.overflowFile.writeBlockToFile(oldChain.get(j), nextBLockPointers.get(j - 1));
@@ -235,6 +236,8 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         int totalRecords = this.primaryFile.getTotalRecords();
         if (newPrimaryRecords > previousPrimaryRecords) {
             this.primaryFile.setTotalRecords(totalRecords + (previousPrimaryRecords - newPrimaryRecords));
+        } else if (newPrimaryRecords < previousPrimaryRecords) {
+            this.primaryFile.setTotalRecords(totalRecords - (previousPrimaryRecords - newPrimaryRecords));
         }
         totalRecords = this.overflowFile.getTotalRecords();
         if (newOverflowRecords < previousOverflowRecords) {
