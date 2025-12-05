@@ -168,6 +168,7 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
     void updateListsAfterInsert(int index, B block) {
         if (block.getValidCount() == block.getBlockFactor()) {
             this.partiallyEmptyBlocks.remove(Integer.valueOf(index));
+            this.emptyBlocks.remove(Integer.valueOf(index));
         } else if (block.getValidCount() > 0 && block.getValidCount() < block.getBlockFactor()) {
             if (!this.partiallyEmptyBlocks.contains(index)) {
                 this.partiallyEmptyBlocks.add(index);

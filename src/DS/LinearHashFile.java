@@ -224,16 +224,12 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
                 lastUsedIndex = j;
             }
         }
-        oldChain.getFirst().setNextBlockIndex(-1);
-        for(int j=1; j<oldChain.size(); j++) {
-            oldChain.get(j).setNextBlockIndex(-1);
-        }
         for (int j = 0; j <= lastUsedIndex; j++) {
             if (j == 0) {
                 if (lastUsedIndex == 0) {
                     oldChain.getFirst().setNextBlockIndex(-1);
                 } else {
-                    oldChain.getFirst().setNextBlockIndex(nextBLockPointers.get(1));
+                    oldChain.getFirst().setNextBlockIndex(nextBLockPointers.getFirst());
                 }
             } else {
                 if (j == lastUsedIndex) {
@@ -301,6 +297,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         int lastBlockIndex = bucket;
         boolean lastIsPrimary = true;
         int overflowBlocksUsed = 0;
+        ArrayList<Integer> pointersUsed = new ArrayList<>();
         int newOverflowRecords = 0;
         while (!records.isEmpty()) {
             ChainedBlock<T> overflowBlock = new ChainedBlock<>(this.overflowFile.getRecordClass(), this.overflowFile.getBlockSize());
@@ -309,6 +306,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
                 newOverflowRecords++;
             }
             int overflowBlockIndex = this.overflowFile.getEmptyBlockIndex();
+            pointersUsed.add(overflowBlockIndex);
             overflowBlocksUsed++;
             this.overflowFile.writeBlockToFile(overflowBlock, overflowBlockIndex);
             lastBlock.setNextBlockIndex(overflowBlockIndex);
@@ -324,7 +322,9 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         }
         if (!oldChain.isEmpty()) {
             for (int j = overflowBlocksUsed; j < oldChain.size(); j++) {
-                this.overflowFile.writeBlockToFile(oldChain.get(j), pointers.get(j));
+                if (!pointersUsed.contains(pointers.get(j))) {
+                    this.overflowFile.writeBlockToFile(oldChain.get(j), pointers.get(j));
+                }
             }
         }
         this.primaryFile.setTotalRecords(this.primaryFile.getTotalRecords() + newPrimaryRecords);

@@ -20,7 +20,7 @@ public class Main {
                 128
         );
 
-        //HashFileTester<Osoba> tester = new HashFileTester<>(hashFile,Osoba::getHash,seed);tester.performRandomOperations(1500);tester.printBucketDistribution();
-        MainWindow<Osoba> mainWindow = new MainWindow<>(hashFile);mainWindow.setVisible(true);
+        HashFileTester<Osoba> tester = new HashFileTester<>(hashFile,Osoba::getHash,seed);tester.performRandomOperations(1500);tester.printBucketDistribution();
+        //MainWindow<Osoba> mainWindow = new MainWindow<>(hashFile);mainWindow.setVisible(true);
     }
 }
