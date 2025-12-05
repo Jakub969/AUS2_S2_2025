@@ -76,11 +76,8 @@ public class Osoba implements IRecord<Osoba>, IHashable {
 
             Integer[] testy = new Integer[TESTY_ARRAY_SIZE];
             for (int i = 0; i < TESTY_ARRAY_SIZE; i++) {
-                if (in.readBoolean()) {
-                    testy[i] = in.readInt();
-                } else {
-                    testy[i] = null;
-                }
+                int testID = in.readInt();
+                testy[i] = (testID != -1) ? testID : null;
             }
 
             this.meno = meno;
@@ -117,10 +114,9 @@ public class Osoba implements IRecord<Osoba>, IHashable {
 
             for (int i = 0; i < TESTY_ARRAY_SIZE; i++) {
                 if (this.testyPacienta[i] != null) {
-                    out.writeBoolean(true);
                     out.writeInt(this.testyPacienta[i]);
                 } else {
-                    out.writeBoolean(false);
+                    out.writeInt(-1);
                 }
             }
 
@@ -147,7 +143,7 @@ public class Osoba implements IRecord<Osoba>, IHashable {
 
     @Override
     public int getSize() {
-        int testySize = TESTY_ARRAY_SIZE * (1 + Integer.BYTES);
+        int testySize = TESTY_ARRAY_SIZE * Integer.BYTES;
         return Integer.BYTES * 3 +
                 (Character.BYTES * (this.MAX_MENO_LENGTH + this.MAX_PRIEZVISKO_LENGTH + this.UUID_LENGTH)) +
                 Long.BYTES +

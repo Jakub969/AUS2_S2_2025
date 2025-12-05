@@ -14,7 +14,7 @@ public class Main {
         /*Class<Block<Osoba>> blockClass = (Class<Block<Osoba>>) (Class<?>) Block.class;
         HeapFileTester<Osoba> heapFileTester = new HeapFileTester<>(new HeapFile<>("test_heap_file.bin", Osoba.class, blockClass,512), System.currentTimeMillis());
         heapFileTester.performRandomOperations(1000);*/
-        /*long seed = System.currentTimeMillis();
+        long seed = System.currentTimeMillis();
         System.out.println("Testing with seed: " + seed);
         LinearHashFile<Osoba> hashFile = new LinearHashFile<>(
                 Osoba.class,
@@ -22,11 +22,14 @@ public class Main {
                 Osoba::getHash,
                 "primary_data.bin",
                 "overflow_data.bin",
-                1024,
-                512
+                512,
+                256
         );
 
-        HashFileTester<Osoba> tester = new HashFileTester<>(hashFile,Osoba::getHash,seed);tester.performRandomOperations(1500);tester.printBucketDistribution();*/
-        //MainWindow<Osoba> mainWindow = new MainWindow<>(hashFile);mainWindow.setVisible(true);
+        HashFileTester<Osoba> tester = new HashFileTester<>(hashFile,Osoba::getHash,seed);
+        tester.performRandomOperations(50);
+        tester.printBucketDistribution();
+        //MainWindow<Osoba> mainWindow = new MainWindow<>(hashFile);
+        //mainWindow.setVisible(true);
     }
 }
