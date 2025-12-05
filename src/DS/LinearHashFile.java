@@ -75,8 +75,6 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
     public T find(T record) {
         long key = this.keyExtractor.apply(record);
         int bucket = this.bucketForKey(key);
-
-        System.out.println("Finding record with key: " + key + " in bucket: " + bucket);
         ChainedBlock block = this.primaryFile.getBlock(bucket);
         for (int r = 0; r < block.getValidCount(); r++) {
             IRecord<T> rec = block.getRecordAt(r);

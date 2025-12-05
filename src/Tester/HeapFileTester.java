@@ -82,11 +82,25 @@ public class HeapFileTester<T extends IRecord<T>> {
     }
 
     public void removeRecord(IndexedRecord<T> entry) {
-        boolean removedHeap = this.heapFile.deleteRecord(entry.blockIndex, entry.record);
+        T removedHeap = this.heapFile.deleteRecord(entry.blockIndex, entry.record);
 
-        boolean removedExpected = this.expectedBlocks.get(entry.blockIndex).removeIf(r -> r.isEqual(entry.record));
+        List<IRecord<T>> block = this.expectedBlocks.get(entry.blockIndex);
+        T removedExpected = null;
 
-        if (removedHeap != removedExpected) {
+        for (Iterator<IRecord<T>> iterator = block.iterator(); iterator.hasNext(); ) {
+            IRecord<T> record = iterator.next();
+            if (record.isEqual(entry.record)) {
+                removedExpected = record.createCopy();
+                iterator.remove();
+                break;
+            }
+        }
+
+        if (removedExpected == null) {
+            throw new IllegalStateException("Record not found in expected blocks");
+        }
+
+        if (!removedHeap.isEqual(removedExpected)) {
             throw new IllegalStateException("Delete mismatch: heap vs expected");
         }
 
@@ -96,11 +110,12 @@ public class HeapFileTester<T extends IRecord<T>> {
     public void findRecord(IndexedRecord<T> entry) {
         T fromHeap = this.heapFile.findRecord(entry.blockIndex, entry.record);
 
-        boolean expectedFound = this.expectedBlocks.get(entry.blockIndex).stream().anyMatch(r -> r.isEqual(entry.record));
+        T expectedFound = Objects.requireNonNull(this.expectedBlocks.get(entry.blockIndex).stream().
+                filter(r -> r.isEqual(entry.record))
+                .findFirst()
+                .orElse(null)).createCopy();
 
-        boolean heapFound = (fromHeap != null);
-
-        if (heapFound != expectedFound) {
+        if (!fromHeap.isEqual(expectedFound)) {
             throw new IllegalStateException("Find mismatch: heap vs expected");
         }
     }
@@ -138,8 +153,40 @@ public class HeapFileTester<T extends IRecord<T>> {
                     }
                 }
             }
+            this.checkSize();
             this.printHeap();
             this.printExpected();
+        }
+    }
+
+    private void checkSize() {
+        ArrayList<IRecord<T>> recordsInHeap = new ArrayList<>();
+        ArrayList<IRecord<T>> recordsInExpected = new ArrayList<>();
+        int totalBlocks = this.heapFile.getTotalBlocks();
+        for (int i = 0; i < totalBlocks; i++) {
+            Block<T> block = this.heapFile.getBlock(i);
+            for (int j = 0; j < block.getValidCount(); j++) {
+                recordsInHeap.add(block.getRecordAt(j));
+            }
+        }
+        for (List<IRecord<T>> blockRecords : this.expectedBlocks) {
+            recordsInExpected.addAll(blockRecords);
+        }
+        if (recordsInHeap.size() != recordsInExpected.size()) {
+            throw new IllegalStateException("Size mismatch: heap has " + recordsInHeap.size() +
+                    " records, expected has " + recordsInExpected.size() + " records.");
+        }
+        for (IRecord<T> expectedRecord : recordsInExpected) {
+            boolean found = false;
+            for (IRecord<T> heapRecord : recordsInHeap) {
+                if (heapRecord.isEqual((T) expectedRecord)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                throw new IllegalStateException("Record missing in heap: " + expectedRecord);
+            }
         }
     }
 

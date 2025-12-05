@@ -64,7 +64,7 @@ public class PCRTest implements IRecord<PCRTest>, IHashable {
 
     @Override
     public long getHash() {
-        return this.UUIDPacienta.hashCode();
+        return this.kodTestu;
     }
 
     @Override

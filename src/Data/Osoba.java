@@ -16,6 +16,7 @@ public class Osoba implements IRecord<Osoba>, IHashable {
     private Date datumNarodenia;
     private String UUID;
     private final int UUID_LENGTH = 10;
+    private Integer[] testyPacienta = new Integer[6];
 
     public Osoba() {
         this.meno = "";
@@ -176,5 +177,22 @@ public class Osoba implements IRecord<Osoba>, IHashable {
     @Override
     public long getHash() {
         return this.UUID.hashCode();
+    }
+
+    public Integer[] getTestyPacienta() {
+        return this.testyPacienta;
+    }
+
+    public void setTestyPacienta(Integer[] testyPacienta) {
+        this.testyPacienta = testyPacienta;
+    }
+
+    public void pridatTest(int testID) {
+        for (int i = 0; i < this.testyPacienta.length; i++) {
+            if (this.testyPacienta[i] == null) {
+                this.testyPacienta[i] = testID;
+                return;
+            }
+        }
     }
 }

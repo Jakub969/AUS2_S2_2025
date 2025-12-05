@@ -139,16 +139,16 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
         return null;
     }
 
-    public boolean deleteRecord(int index, T record) {
+    public T deleteRecord(int index, T record) {
         if (index < 0 || index >= this.totalBlocks) {
-            return false;
+            return null;
         }
 
         B block = this.getBlock(index);
         T removed = block.removeRecord(record);
 
         if (removed == null) {
-            return false;
+            return null;
         }
 
         this.totalRecords--;
@@ -158,7 +158,7 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
 
         this.saveLists();
         this.saveHeader();
-        return true;
+        return removed;
     }
 
     void updateListsAfterInsert(int index, B block) {
