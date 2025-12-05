@@ -271,6 +271,16 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
             this.primaryFile.writeBlockToFile(block, bucket);
             this.primaryFile.setTotalRecords(this.primaryFile.getTotalRecords() + newPrimaryRecords);
             this.primaryFile.saveHeader();
+            int startIndex = -1;
+            for (int j = 0; j < oldChain.size(); j++) {
+                if (oldChain.get(j).getValidCount() == 0) {
+                    startIndex = j;
+                    break;
+                }
+            }
+            for (int j = startIndex; j < oldChain.size(); j++) {
+                this.overflowFile.writeBlockToFile(oldChain.get(j), pointers.get(j - 1));
+            }
             this.overflowFile.trimTrailingEmptyBlocks();
             this.overflowFile.saveHeader();
             return;
