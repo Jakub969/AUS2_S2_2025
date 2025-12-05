@@ -347,7 +347,7 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
 
     public int getEmptyBlockIndex() {
         if (!this.emptyBlocks.isEmpty()) {
-            return this.emptyBlocks.removeLast();
+            return this.emptyBlocks.removeFirst();
         }
         return -1;
     }

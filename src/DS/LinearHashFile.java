@@ -249,6 +249,16 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
                 this.overflowFile.writeBlockToFile(oldChain.get(j), nextBLockPointers.get(j - 1));
             }
         }
+        ArrayList<ChainedBlock<T>> unusedBlocks = new ArrayList<>();
+        for (int j = 1; j < oldChain.size(); j++) {
+            if (oldChain.get(j).getValidCount() == 0) {
+                unusedBlocks.add(oldChain.get(j));
+            } else {
+                nextBLockPointers.removeFirst();
+            }
+        }
+        oldChain.clear();
+        oldChain.addAll(unusedBlocks);
         int primaryDiff = newPrimaryRecords - previousPrimaryRecords;
         this.primaryFile.setTotalRecords(this.primaryFile.getTotalRecords() + primaryDiff);
 
@@ -265,21 +275,16 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         while (block.getValidCount() < block.getBlockFactor() && !records.isEmpty()) {
             block.addRecord(records.removeFirst());
             newPrimaryRecords++;
-        }//TODO nezabudnuť zapísať prázdne nepoužité bloky v overflow file
+        }
         if (records.isEmpty() && newPrimaryRecords > 0) {
             this.primaryFile.incrementTotalBlocks();
             this.primaryFile.writeBlockToFile(block, bucket);
             this.primaryFile.setTotalRecords(this.primaryFile.getTotalRecords() + newPrimaryRecords);
             this.primaryFile.saveHeader();
-            int startIndex = -1;
-            for (int j = 0; j < oldChain.size(); j++) {
-                if (oldChain.get(j).getValidCount() == 0) {
-                    startIndex = j;
-                    break;
+            if (!oldChain.isEmpty()) {
+                for (int j = 0; j < oldChain.size(); j++) {
+                    this.overflowFile.writeBlockToFile(oldChain.get(j), pointers.get(j));
                 }
-            }
-            for (int j = startIndex; j < oldChain.size(); j++) {
-                this.overflowFile.writeBlockToFile(oldChain.get(j), pointers.get(j - 1));
             }
             this.overflowFile.trimTrailingEmptyBlocks();
             this.overflowFile.saveHeader();
@@ -317,15 +322,10 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
             lastBlockIndex = overflowBlockIndex;
             lastIsPrimary = false;
         }
-        int startIndex = -1;
-        for (int j = 0; j < oldChain.size(); j++) {
-            if (oldChain.get(j).getValidCount() == 0) {
-                startIndex = j + overflowBlocksUsed;
-                break;
+        if (!oldChain.isEmpty()) {
+            for (int j = overflowBlocksUsed; j < oldChain.size(); j++) {
+                this.overflowFile.writeBlockToFile(oldChain.get(j), pointers.get(j));
             }
-        }
-        for (int j = startIndex; j < oldChain.size(); j++) {
-            this.overflowFile.writeBlockToFile(oldChain.get(j), pointers.get(j - 1));
         }
         this.primaryFile.setTotalRecords(this.primaryFile.getTotalRecords() + newPrimaryRecords);
         this.overflowFile.setTotalRecords(this.overflowFile.getTotalRecords() + newOverflowRecords);
