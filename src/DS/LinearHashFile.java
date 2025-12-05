@@ -225,18 +225,12 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
             }
         }
         for (int j = 0; j <= lastUsedIndex; j++) {
-            if (j == 0) {
-                if (lastUsedIndex == 0) {
-                    oldChain.getFirst().setNextBlockIndex(-1);
-                } else {
-                    oldChain.getFirst().setNextBlockIndex(nextBLockPointers.getFirst());
-                }
+            if (j == lastUsedIndex) {
+                oldChain.get(j).setNextBlockIndex(-1);
             } else {
-                if (j == lastUsedIndex) {
-                    oldChain.get(j).setNextBlockIndex(-1);
-                } else {
-                    oldChain.get(j).setNextBlockIndex(nextBLockPointers.get(j+1));
-                }
+                int nextBlockFileIndex;
+                nextBlockFileIndex = nextBLockPointers.get(j);
+                oldChain.get(j).setNextBlockIndex(nextBlockFileIndex);
             }
         }
         this.primaryFile.writeBlockToFile(oldChain.getFirst(), blockIndex);
@@ -297,34 +291,31 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         int lastBlockIndex = bucket;
         boolean lastIsPrimary = true;
         int overflowBlocksUsed = 0;
-        ArrayList<Integer> pointersUsed = new ArrayList<>();
         int newOverflowRecords = 0;
+        int i = 0;
         while (!records.isEmpty()) {
-            ChainedBlock<T> overflowBlock = new ChainedBlock<>(this.overflowFile.getRecordClass(), this.overflowFile.getBlockSize());
-            while (overflowBlock.getValidCount() < overflowBlock.getBlockFactor() && !records.isEmpty()) {
-                overflowBlock.addRecord(records.removeFirst());
+            while (oldChain.get(i).getValidCount() < oldChain.get(i).getBlockFactor() && !records.isEmpty()) {
+                oldChain.get(i).addRecord(records.removeFirst());
                 newOverflowRecords++;
             }
-            int overflowBlockIndex = this.overflowFile.getEmptyBlockIndex();
-            pointersUsed.add(overflowBlockIndex);
+            this.overflowFile.updateListsAfterInsert(pointers.get(i), oldChain.get(i));
             overflowBlocksUsed++;
-            this.overflowFile.writeBlockToFile(overflowBlock, overflowBlockIndex);
-            lastBlock.setNextBlockIndex(overflowBlockIndex);
+            this.overflowFile.writeBlockToFile(oldChain.get(i), pointers.get(i));
+            lastBlock.setNextBlockIndex(pointers.get(i));
             if (lastIsPrimary) {
                 this.primaryFile.incrementTotalBlocks();
                 this.primaryFile.writeBlockToFile(lastBlock, lastBlockIndex);
             } else {
                 this.overflowFile.writeBlockToFile(lastBlock, lastBlockIndex);
             }
-            lastBlock = overflowBlock;
-            lastBlockIndex = overflowBlockIndex;
+            lastBlock = oldChain.get(i);
+            lastBlockIndex = pointers.get(i);
             lastIsPrimary = false;
+            i++;
         }
         if (!oldChain.isEmpty()) {
             for (int j = overflowBlocksUsed; j < oldChain.size(); j++) {
-                if (!pointersUsed.contains(pointers.get(j))) {
-                    this.overflowFile.writeBlockToFile(oldChain.get(j), pointers.get(j));
-                }
+                this.overflowFile.writeBlockToFile(oldChain.get(j), pointers.get(j));
             }
         }
         this.primaryFile.setTotalRecords(this.primaryFile.getTotalRecords() + newPrimaryRecords);
