@@ -69,24 +69,20 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
     }
 
     public BlockInsertResult<T> insertRecordWithMetadata(T record,int blockIndex) {
-        if (blockIndex < this.totalBlocks) {
-            if(!this.partiallyEmptyBlocks.isEmpty()) {
-                this.partiallyEmptyBlocks.remove(Integer.valueOf(blockIndex));
-            }
-            ChainedBlock block = (ChainedBlock) this.getBlock(blockIndex);
-            if (block.getValidCount() == block.getBlockFactor()) {
-                return new BlockInsertResult<>(-1, block); // Indikácia, že blok je plný a nie je možné vložiť záznam
-            }
-            block.addRecord(record);
-            this.updateListsAfterInsert(blockIndex, (B) block);
-            this.writeBlockToFile((B) block, blockIndex);
-            this.totalRecords++;
-            this.saveLists();
-            this.saveHeader();
-            return new BlockInsertResult<>(blockIndex, block);
-        } else {
-            return this.insertRecordAsNewBlock(record);
+        if(!this.partiallyEmptyBlocks.isEmpty()) {
+            this.partiallyEmptyBlocks.remove(Integer.valueOf(blockIndex));
         }
+        ChainedBlock block = (ChainedBlock) this.getBlock(blockIndex);
+        if (block.getValidCount() == block.getBlockFactor()) {
+            return new BlockInsertResult<>(-1, block); // Indikácia, že blok je plný a nie je možné vložiť záznam
+        }
+        block.addRecord(record);
+        this.updateListsAfterInsert(blockIndex, (B) block);
+        this.writeBlockToFile((B) block, blockIndex);
+        this.totalRecords++;
+        this.saveLists();
+        this.saveHeader();
+        return new BlockInsertResult<>(blockIndex, block);
     }
 
     public BlockInsertResult<T> insertRecordAsNewBlock(T record) {

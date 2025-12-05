@@ -12,12 +12,12 @@ public class Main {
         System.out.println("Testing with seed: " + seed);
         LinearHashFile<Osoba> hashFile = new LinearHashFile<>(
                 Osoba.class,
-                2,
+                4,
                 Osoba::getHash,
                 "primary_data.bin",
                 "overflow_data.bin",
-                128,
-                128
+                1024,
+                512
         );
 
         HashFileTester<Osoba> tester = new HashFileTester<>(hashFile,Osoba::getHash,seed);tester.performRandomOperations(1500);tester.printBucketDistribution();

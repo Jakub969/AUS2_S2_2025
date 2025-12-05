@@ -21,7 +21,6 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
             throw new IllegalArgumentException("initialBuckets must be power of two and > 0");
         }
 
-        @SuppressWarnings("unchecked")
         Class<ChainedBlock<T>> chainedBlockClass = (Class<ChainedBlock<T>>) (Class<?>) ChainedBlock.class;
         this.primaryFile = new HeapFile<>(primaryFileName, recordClass, chainedBlockClass ,blockSizePrimary);
         this.overflowFile = new HeapFile<>(overflowFileName, recordClass,chainedBlockClass, blockSizeOverflow);
@@ -105,18 +104,17 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
                 b = this.overflowFile.getBlock(currentIndex);
                 isPrimary = false;
             }
-            HeapFile.BlockInsertResult<T> newResult = this.overflowFile.insertRecordWithMetadata(record, currentIndex);
-            b.setNextBlockIndex(newResult.blockIndex);
-            if (newResult.blockIndex == -1) {
-                HeapFile.BlockInsertResult<T> finalResult = this.overflowFile.insertRecordAsNewBlock(record);
-                b.setNextBlockIndex(finalResult.blockIndex);
-            }
-            if (isPrimary) {
-                this.primaryFile.writeBlockToFile(b, bucket);
+            if (b.getValidCount() == b.getBlockFactor()) {
+                HeapFile.BlockInsertResult<T> newResult = this.overflowFile.insertRecordAsNewBlock(record);
+                b.setNextBlockIndex(newResult.blockIndex);
+                if (isPrimary) {
+                    this.primaryFile.writeBlockToFile(b, bucket);
+                } else {
+                    this.overflowFile.writeBlockToFile(b, currentIndex);
+                }
             } else {
-                this.overflowFile.writeBlockToFile(b, currentIndex);
+                this.overflowFile.insertRecordWithMetadata(record, currentIndex);
             }
-
         }
         this.splitNextBucketIfNeeded();
     }
