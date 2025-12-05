@@ -17,6 +17,7 @@ public class Osoba implements IRecord<Osoba>, IHashable {
     private String UUID;
     private final int UUID_LENGTH = 10;
     private Integer[] testyPacienta = new Integer[6];
+    private static final int TESTY_ARRAY_SIZE = 6;
 
     public Osoba() {
         this.meno = "";
@@ -73,10 +74,20 @@ public class Osoba implements IRecord<Osoba>, IHashable {
             int uuidLen = in.readInt();
             String uuid = this.readFixedString(in, this.UUID_LENGTH).substring(0, uuidLen);
 
+            Integer[] testy = new Integer[TESTY_ARRAY_SIZE];
+            for (int i = 0; i < TESTY_ARRAY_SIZE; i++) {
+                if (in.readBoolean()) {
+                    testy[i] = in.readInt();
+                } else {
+                    testy[i] = null;
+                }
+            }
+
             this.meno = meno;
             this.priezvisko = priezvisko;
             this.datumNarodenia = datum;
             this.UUID = uuid;
+            this.testyPacienta = testy;
 
             return this;
 
@@ -104,6 +115,15 @@ public class Osoba implements IRecord<Osoba>, IHashable {
             out.writeInt(Math.min(this.UUID.length(), this.UUID_LENGTH));
             this.writeFixedString(out, this.UUID, this.UUID_LENGTH);
 
+            for (int i = 0; i < TESTY_ARRAY_SIZE; i++) {
+                if (this.testyPacienta[i] != null) {
+                    out.writeBoolean(true);
+                    out.writeInt(this.testyPacienta[i]);
+                } else {
+                    out.writeBoolean(false);
+                }
+            }
+
             return baos.toByteArray();
 
         } catch (IOException e) {
@@ -127,18 +147,38 @@ public class Osoba implements IRecord<Osoba>, IHashable {
 
     @Override
     public int getSize() {
-        return Integer.BYTES * 3 + (Character.BYTES * (this.MAX_MENO_LENGTH + this.MAX_PRIEZVISKO_LENGTH + this.UUID_LENGTH)) + Long.BYTES;
+        int testySize = TESTY_ARRAY_SIZE * (1 + Integer.BYTES);
+        return Integer.BYTES * 3 +
+                (Character.BYTES * (this.MAX_MENO_LENGTH + this.MAX_PRIEZVISKO_LENGTH + this.UUID_LENGTH)) +
+                Long.BYTES +
+                testySize;
     }
 
     @Override
     public String toString() {
         SimpleDateFormat formatter = new SimpleDateFormat("dd.MM.yyyy");
-        String formattedDate = formatter.format(datumNarodenia);
+        String formattedDate = formatter.format(this.datumNarodenia);
+
+        // Format testyPacienta array
+        StringBuilder testyStr = new StringBuilder("[");
+        for (int i = 0; i < this.testyPacienta.length; i++) {
+            if (this.testyPacienta[i] != null) {
+                testyStr.append(this.testyPacienta[i]);
+            } else {
+                testyStr.append("null");
+            }
+            if (i < this.testyPacienta.length - 1) {
+                testyStr.append(",");
+            }
+        }
+        testyStr.append("]");
+
         return "Osoba{" +
-                meno +
-                ";" + priezvisko  +
+                this.meno +
+                ";" + this.priezvisko +
                 ";" + formattedDate +
-                ";" + UUID +
+                ";" + this.UUID +
+                ";Testy:" + testyStr +
                 '}';
     }
 

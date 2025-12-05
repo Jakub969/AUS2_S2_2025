@@ -7,13 +7,13 @@ import java.io.*;
 import java.util.Date;
 
 public class PCRTest implements IRecord<PCRTest>, IHashable {
-    private final Date datumTestu;
-    private final String UUIDPacienta;
+    private Date datumTestu;
+    private String UUIDPacienta;
     private final int MAX_UUID_LENGTH = 10;
-    private final int kodTestu;
-    private final boolean vysledokTestu;
-    private final double hodnotaTestu;
-    private final String poznamka;
+    private int kodTestu;
+    private boolean vysledokTestu;
+    private double hodnotaTestu;
+    private String poznamka;
     private final int MAX_POZNAMKA_LENGTH = 11;
 
     public PCRTest() {
@@ -58,8 +58,8 @@ public class PCRTest implements IRecord<PCRTest>, IHashable {
         this.poznamka = poznamka;
     }
 
-    public static PCRTest fromUUIDandKod(String UUIDPacienta, int kodTestu) {
-        return new PCRTest(new Date(0), UUIDPacienta, kodTestu, false, 0.0, "");
+    public static PCRTest fromTestID(int kodTestu) {
+        return new PCRTest(new Date(0), "", kodTestu, false, 0.0, "");
     }
 
     @Override
@@ -80,15 +80,15 @@ public class PCRTest implements IRecord<PCRTest>, IHashable {
     @Override
     public PCRTest fromByteArray(byte[] bytesArray) {
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(bytesArray))) {
-            Date datumTestu = new Date(in.readLong());
+            this.datumTestu = new Date(in.readLong());
             int uuidLength = in.readInt();
-            String UUIDPacienta = this.readFixedString(in, this.MAX_UUID_LENGTH).substring(0, uuidLength);
-            int kodTestu = in.readInt();
-            boolean vysledokTestu = in.readBoolean();
-            double hodnotaTestu = in.readDouble();
+            this.UUIDPacienta = this.readFixedString(in, this.MAX_UUID_LENGTH).substring(0, uuidLength);
+            this.kodTestu = in.readInt();
+            this.vysledokTestu = in.readBoolean();
+            this.hodnotaTestu = in.readDouble();
             int poznamkaLength = in.readInt();
-            String poznamka = this.readFixedString(in, this.MAX_POZNAMKA_LENGTH).substring(0, poznamkaLength);
-            return new PCRTest(datumTestu, UUIDPacienta, kodTestu, vysledokTestu, hodnotaTestu, poznamka);
+            this.poznamka = this.readFixedString(in, this.MAX_POZNAMKA_LENGTH).substring(0, poznamkaLength);
+            return this;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -141,6 +141,10 @@ public class PCRTest implements IRecord<PCRTest>, IHashable {
 
     @Override
     public int getSize() {
-        return Integer.BYTES + Long.BYTES + Double.BYTES + (this.MAX_UUID_LENGTH + this.MAX_POZNAMKA_LENGTH) * Character.BYTES + 1;
+        return Long.BYTES +
+                Integer.BYTES * 3 +
+                1 +
+                Double.BYTES +
+                (this.MAX_UUID_LENGTH + this.MAX_POZNAMKA_LENGTH) * Character.BYTES;
     }
 }

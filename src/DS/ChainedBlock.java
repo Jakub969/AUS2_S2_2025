@@ -1,5 +1,6 @@
 package DS;
 
+import Interface.IHashable;
 import Interface.IRecord;
 
 import java.io.*;
@@ -86,5 +87,20 @@ public class ChainedBlock<T extends IRecord<T>> extends Block<T> {
     @Override
     public int getBlockFactor() {
         return this.blockFactor;
+    }
+
+    public void updateRecordAt(int r, T newRecord) {
+        this.records[r] = newRecord;
+    }
+
+    public boolean updateRecord(T newRecord) {
+        for (int i = 0; i < this.blockFactor; i++) {
+            T currentRecord = (T) this.records[i];
+            if (currentRecord != null && currentRecord.isEqual(newRecord)) {
+                this.records[i] = newRecord;
+                return true;
+            }
+        }
+        return false;
     }
 }

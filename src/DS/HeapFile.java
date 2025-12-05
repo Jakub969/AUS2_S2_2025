@@ -342,12 +342,32 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
         this.totalBlocks = initialBuckets;
     }
 
+    public void close() {
+        this.saveLists();
+        this.saveHeader();
+    }
+
     public void setTotalRecords(int totalRecords) {
         this.totalRecords = totalRecords;
     }
 
     public void incrementTotalBlocks() {
         this.totalBlocks++;
+    }
+
+    public boolean editInChain(int nextIndex, T newRecord) {
+        int currentIndex = nextIndex;
+
+        while (currentIndex != -1) {
+            ChainedBlock block = (ChainedBlock) this.getBlock(currentIndex);
+            boolean updated = block.updateRecord(newRecord);
+            if (updated) {
+                this.writeBlockToFile((B) block, currentIndex);
+                return true;
+            }
+            currentIndex = block.getNextBlockIndex();
+        }
+        return false;
     }
 
     public static class BlockInsertResult<T extends IRecord<T>> {
