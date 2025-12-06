@@ -16,21 +16,11 @@ public class Controller {
         this.model = null;
     }
 
-    // File operations
-    public void createNewModel(String osobaFolderPath, String pcrFolderPath) {
+    public void createNewModelWithParams(String osobaFolderPath, String pcrFolderPath, int initialBuckets, int blockSizePrimary, int blockSizeOverflow) {
         if (this.model != null) {
             this.model.close();
         }
-        this.model = new Model(osobaFolderPath, pcrFolderPath);
-    }
-
-    public void createNewModelWithParams(String osobaFolderPath, String pcrFolderPath,
-                                         int initialBuckets, int blockSizePrimary, int blockSizeOverflow) {
-        if (this.model != null) {
-            this.model.close();
-        }
-        this.model = new Model(osobaFolderPath, pcrFolderPath,
-                initialBuckets, blockSizePrimary, blockSizeOverflow);
+        this.model = new Model(osobaFolderPath, pcrFolderPath, initialBuckets, blockSizePrimary, blockSizeOverflow);
     }
 
     public void openExistingModel(String osobaFolderPath, String pcrFolderPath) {
@@ -176,43 +166,12 @@ public class Controller {
         }
     }
 
-    // Data generation
     public void generateData(int count) {
         if (this.model != null) {
             this.model.generujUdaje(count);
         }
     }
 
-    // File management
-    public void createNewOsobaFile(String folderPath, int initialBuckets,
-                                   int blockSizePrimary, int blockSizeOverflow) {
-        if (this.model != null) {
-            this.model.createNewOsobaFile(folderPath, initialBuckets,
-                    blockSizePrimary, blockSizeOverflow);
-        }
-    }
-
-    public void createNewPCRFile(String folderPath, int initialBuckets,
-                                 int blockSizePrimary, int blockSizeOverflow) {
-        if (this.model != null) {
-            this.model.createNewPCRFile(folderPath, initialBuckets,
-                    blockSizePrimary, blockSizeOverflow);
-        }
-    }
-
-    public void openOsobaFile(String folderPath) {
-        if (this.model != null) {
-            this.model.openOsobaFile(folderPath);
-        }
-    }
-
-    public void openPCRFile(String folderPath) {
-        if (this.model != null) {
-            this.model.openPCRFile(folderPath);
-        }
-    }
-
-    // Status checks
     public boolean isModelLoaded() {
         return this.model != null;
     }
@@ -233,7 +192,6 @@ public class Controller {
         return this.model != null ? this.model.getCurrentPCRFolder() : "No file loaded";
     }
 
-    // Bucket display (returns formatted string instead of direct access)
     public String getOsobaBucketsInfo() {
         if (this.model == null || this.model.getHashFileOsoba() == null) {
             return "Osoba file not loaded.";
@@ -295,9 +253,5 @@ public class Controller {
             }
         }
         return sb.toString();
-    }
-
-    public Model getModel() {
-        return this.model;
     }
 }

@@ -37,7 +37,6 @@ public class MainWindow2 extends JFrame {
 
         this.setLayout(new BorderLayout());
 
-        // Menu Bar
         JMenuBar menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
 
@@ -66,24 +65,19 @@ public class MainWindow2 extends JFrame {
         menuBar.add(fileMenu);
         this.setJMenuBar(menuBar);
 
-        // Main content - Tabbed pane
         JTabbedPane tabbedPane = new JTabbedPane();
 
-        // Osoba tab
         JPanel osobaPanel = this.createOsobaPanel();
         tabbedPane.addTab("Osoba Records", osobaPanel);
 
-        // PCR Test tab
         JPanel pcrPanel = this.createPCRPanel();
         tabbedPane.addTab("PCR Test Records", pcrPanel);
 
-        // Output area
         this.outputArea = new JTextArea();
         this.outputArea.setEditable(false);
         JScrollPane outputScroll = new JScrollPane(this.outputArea);
         outputScroll.setPreferredSize(new Dimension(880, 350));
 
-        // Status bar
         JPanel statusPanel = new JPanel(new GridLayout(1, 2));
         this.osobaStatusLabel = new JLabel("Osoba: Not loaded");
         this.pcrStatusLabel = new JLabel("PCR Test: Not loaded");
@@ -92,7 +86,6 @@ public class MainWindow2 extends JFrame {
         statusPanel.add(this.osobaStatusLabel);
         statusPanel.add(this.pcrStatusLabel);
 
-        // Layout
         this.add(tabbedPane, BorderLayout.CENTER);
         this.add(outputScroll, BorderLayout.SOUTH);
         this.add(statusPanel, BorderLayout.NORTH);
@@ -101,7 +94,6 @@ public class MainWindow2 extends JFrame {
     private JPanel createOsobaPanel() {
         JPanel panel = new JPanel(new BorderLayout());
 
-        // Input fields
         JPanel inputPanel = new JPanel(new GridLayout(4, 2, 5, 5));
         inputPanel.setBorder(BorderFactory.createTitledBorder("Osoba Data"));
 
@@ -119,7 +111,6 @@ public class MainWindow2 extends JFrame {
         inputPanel.add(new JLabel("UUID:"));
         inputPanel.add(uuidField);
 
-        // Buttons
         JPanel buttonPanel = new JPanel(new FlowLayout());
         JButton insertBtn = new JButton("Insert");
         JButton findBtn = new JButton("Find");
@@ -190,7 +181,6 @@ public class MainWindow2 extends JFrame {
     private JPanel createPCRPanel() {
         JPanel panel = new JPanel(new BorderLayout());
 
-        // Input fields
         JPanel inputPanel = new JPanel(new GridLayout(6, 2, 5, 5));
         inputPanel.setBorder(BorderFactory.createTitledBorder("PCR Test Data"));
 
@@ -214,7 +204,6 @@ public class MainWindow2 extends JFrame {
         inputPanel.add(new JLabel("Poznámka:"));
         inputPanel.add(poznamkaField);
 
-        // Buttons
         JPanel buttonPanel = new JPanel(new FlowLayout());
         JButton insertBtn = new JButton("Insert");
         JButton findBtn = new JButton("Find");
@@ -297,7 +286,6 @@ public class MainWindow2 extends JFrame {
             File folder = fileChooser.getSelectedFile();
             String folderPath = folder.getAbsolutePath();
 
-            // Ask for configuration
             String initialBucketsStr = JOptionPane.showInputDialog(this,
                     "Initial number of buckets:", "4");
             String blockSizePrimaryStr = JOptionPane.showInputDialog(this,
@@ -391,7 +379,6 @@ public class MainWindow2 extends JFrame {
         }
     }
 
-    // Osoba operations
     private void insertOsoba(String meno, String priezvisko, String datum, String uuid) {
         if (!this.controller.isModelLoaded()) {
             this.outputArea.setText("Model not loaded. Please create or open a model first.");
@@ -437,9 +424,7 @@ public class MainWindow2 extends JFrame {
         this.outputArea.setText(bucketInfo);
     }
 
-    // PCR Test operations
-    private void insertPCRTest(String datum, String uuid, String kod,
-                               String hodnota, boolean vysledok, String poznamka) {
+    private void insertPCRTest(String datum, String uuid, String kod, String hodnota, boolean vysledok, String poznamka) {
         if (!this.controller.isModelLoaded()) {
             this.outputArea.setText("Model not loaded.");
             return;

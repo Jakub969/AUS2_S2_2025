@@ -26,7 +26,7 @@ public class Main {
         );
 
         HashFileTester<Osoba> tester = new HashFileTester<>(hashFile,Osoba::getHash,seed);
-        tester.performRandomOperations(50);
+        tester.performRandomOperations(1500);
         tester.printBucketDistribution();
     }
 }

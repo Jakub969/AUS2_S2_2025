@@ -109,7 +109,6 @@ public class Model {
         }
     }
 
-    // Close all files
     public void close() {
         if (this.hashFileOsoba != null) {
             this.hashFileOsoba.close();
@@ -119,83 +118,6 @@ public class Model {
         }
     }
 
-    // Create new Osoba file in a different folder
-    public void createNewOsobaFile(String folderPath, int initialBuckets,
-                                   int blockSizePrimary, int blockSizeOverflow) {
-        // Close existing file if open
-        if (this.hashFileOsoba != null) {
-            this.hashFileOsoba.close();
-        }
-
-        // Create folder
-        this.createFolder(folderPath);
-
-        // Create new file
-        this.hashFileOsoba = new LinearHashFile<>(Osoba.class, initialBuckets,
-                Osoba::getHash, folderPath, blockSizePrimary, blockSizeOverflow);
-        this.currentOsobaFolder = folderPath;
-    }
-
-    // Create new PCR file in a different folder
-    public void createNewPCRFile(String folderPath, int initialBuckets,
-                                 int blockSizePrimary, int blockSizeOverflow) {
-        // Close existing file if open
-        if (this.hashFilePCRTest != null) {
-            this.hashFilePCRTest.close();
-        }
-
-        // Create folder
-        this.createFolder(folderPath);
-
-        // Create new file
-        this.hashFilePCRTest = new LinearHashFile<>(PCRTest.class, initialBuckets,
-                PCRTest::getHash, folderPath, blockSizePrimary, blockSizeOverflow);
-        this.currentPCRFolder = folderPath;
-    }
-
-    // Open existing Osoba file
-    public void openOsobaFile(String folderPath) {
-        // Close existing file if open
-        if (this.hashFileOsoba != null) {
-            this.hashFileOsoba.close();
-        }
-
-        // Check if folder exists and has valid files
-        File dirFile = new File(folderPath + File.separator + "directory.txt");
-        File primaryFile = new File(folderPath + File.separator + "primary_data.bin");
-
-        if (!dirFile.exists() || !primaryFile.exists()) {
-            throw new IllegalArgumentException("Invalid Osoba folder: " + folderPath);
-        }
-
-        // Use default settings for existing files
-        this.hashFileOsoba = new LinearHashFile<>(Osoba.class, 4,
-                Osoba::getHash, folderPath, 512, 256);
-        this.currentOsobaFolder = folderPath;
-    }
-
-    // Open existing PCR file
-    public void openPCRFile(String folderPath) {
-        // Close existing file if open
-        if (this.hashFilePCRTest != null) {
-            this.hashFilePCRTest.close();
-        }
-
-        // Check if folder exists and has valid files
-        File dirFile = new File(folderPath + File.separator + "directory.txt");
-        File primaryFile = new File(folderPath + File.separator + "primary_data.bin");
-
-        if (!dirFile.exists() || !primaryFile.exists()) {
-            throw new IllegalArgumentException("Invalid PCR folder: " + folderPath);
-        }
-
-        // Use default settings for existing files
-        this.hashFilePCRTest = new LinearHashFile<>(PCRTest.class, 4,
-                PCRTest::getHash, folderPath, 512, 256);
-        this.currentPCRFolder = folderPath;
-    }
-
-    // Getters for current folder paths
     public String getCurrentOsobaFolder() {
         return this.currentOsobaFolder;
     }
@@ -204,7 +126,6 @@ public class Model {
         return this.currentPCRFolder;
     }
 
-    // Check if files are loaded
     public boolean isOsobaFileLoaded() {
         return this.hashFileOsoba != null;
     }
