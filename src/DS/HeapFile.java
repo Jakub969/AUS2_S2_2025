@@ -243,7 +243,7 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
             throw new RuntimeException("Error creating block instance", e);
         }
     }
-
+    //Používa sa iba ne debugovanie pre výpis v testery
     public int getNextBlockIndex(int blockIndex) {
         ChainedBlock block = (ChainedBlock) this.getBlock(blockIndex);
         return block.getNextBlockIndex();

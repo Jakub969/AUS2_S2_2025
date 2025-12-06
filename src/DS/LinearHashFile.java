@@ -399,7 +399,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
     public HeapFile<ChainedBlock<T>,T> getOverflowFile() {
         return this.overflowFile;
     }
-
+    //používa sa iba pri testovaní
     public int getBucketRecordCount(int bucket) {
         int count = 0;
 
