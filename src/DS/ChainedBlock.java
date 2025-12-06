@@ -1,6 +1,4 @@
 package DS;
-
-import Interface.IHashable;
 import Interface.IRecord;
 
 import java.io.*;

@@ -29,13 +29,11 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         this.baseFolder = folderPath;
         this.keyExtractor = keyExtractor;
 
-        // Ensure folder exists
         File folder = new File(folderPath);
         if (!folder.exists()) {
             folder.mkdirs();
         }
 
-        // Create file paths within the folder
         String primaryFileName = folderPath + File.separator + "primary_data.bin";
         String overflowFileName = folderPath + File.separator + "overflow_data.bin";
         String dirFileName = folderPath + File.separator + "directory.txt";
