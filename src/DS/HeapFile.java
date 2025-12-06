@@ -85,14 +85,7 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
         } else {
             blockIndex = this.totalBlocks;
         }
-
-        ChainedBlock block;
-        if (blockIndex < this.totalBlocks) {
-            block = (ChainedBlock) this.getBlock(blockIndex);
-        } else {
-            block = new ChainedBlock(this.recordClass, this.blockSize);
-        }
-
+        ChainedBlock block = new ChainedBlock(this.recordClass, this.blockSize);
         block.addRecord(record);
         this.updateListsAfterInsert(blockIndex, (B) block);
         this.writeBlockToFile((B) block, blockIndex);

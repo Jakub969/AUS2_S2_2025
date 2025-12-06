@@ -334,7 +334,6 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         } else if (newPrimaryRecords == 0) {
             this.primaryFile.incrementTotalBlocks();
             this.primaryFile.writeBlockToFile(block, bucket);
-            this.overflowFile.trimTrailingEmptyBlocks();
             return;
         }
         ChainedBlock<T> lastBlock = block;
