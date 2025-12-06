@@ -157,6 +157,7 @@ public class HeapFileTester<T extends IRecord<T>> {
             this.printHeap();
             this.printExpected();
         }
+        this.heapFile.close();
     }
 
     private void checkSize() {

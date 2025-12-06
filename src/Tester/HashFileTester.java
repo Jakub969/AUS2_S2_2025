@@ -92,7 +92,7 @@ public class HashFileTester<T extends IRecord<T> & IHashable> {
 
             this.printBucketDistribution();
         }
-
+        this.hashFile.close();
         System.out.println("\n=== FINAL VALIDATION ===");
         this.validateState();
         this.printFinalStatistics();

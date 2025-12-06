@@ -62,16 +62,10 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
             this.totalBlocks++;
         }
         this.totalRecords++;
-
-        this.saveLists();
-        this.saveHeader();
         return blockIndex;
     }
 
     public BlockInsertResult<T> insertRecordWithMetadata(T record,int blockIndex) {
-        if(!this.partiallyEmptyBlocks.isEmpty()) {
-            this.partiallyEmptyBlocks.remove(Integer.valueOf(blockIndex));
-        }
         ChainedBlock block = (ChainedBlock) this.getBlock(blockIndex);
         if (block.getValidCount() == block.getBlockFactor()) {
             return new BlockInsertResult<>(-1, block); // Indikácia, že blok je plný a nie je možné vložiť záznam
@@ -80,8 +74,6 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
         this.updateListsAfterInsert(blockIndex, (B) block);
         this.writeBlockToFile((B) block, blockIndex);
         this.totalRecords++;
-        this.saveLists();
-        this.saveHeader();
         return new BlockInsertResult<>(blockIndex, block);
     }
 
@@ -109,10 +101,6 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
             this.totalBlocks++;
         }
         this.totalRecords++;
-
-        this.saveLists();
-        this.saveHeader();
-
         return new BlockInsertResult<>(blockIndex, block);
     }
 
@@ -155,9 +143,6 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
         this.updateListsAfterDelete(index, block);
         this.writeBlockToFile(block, index);
         this.trimTrailingEmptyBlocks();
-
-        this.saveLists();
-        this.saveHeader();
         return removed;
     }
 
@@ -206,7 +191,6 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
             this.totalBlocks--;
             this.emptyBlocks.remove(Integer.valueOf(this.totalBlocks));
         }
-        this.saveHeader();
     }
 
     public void writeBlockToFile(B block, int blockIndex) {

@@ -237,7 +237,6 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
             this.i++;
         }
         this.splitNextBucketIfNeeded();
-        this.saveDirectory();
     }
 
     private ArrayList<Integer> insertIntoOldBucketNoSplit(int blockIndex, ArrayList<ChainedBlock<T>> oldChain, LinkedList<T> oldBacketRecords) {
@@ -325,21 +324,17 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
             this.primaryFile.incrementTotalBlocks();
             this.primaryFile.writeBlockToFile(block, bucket);
             this.primaryFile.setTotalRecords(this.primaryFile.getTotalRecords() + newPrimaryRecords);
-            this.primaryFile.saveHeader();
             if (!oldChain.isEmpty()) {
                 for (int j = 0; j < oldChain.size(); j++) {
                     this.overflowFile.writeBlockToFile(oldChain.get(j), pointers.get(j));
                 }
             }
             this.overflowFile.trimTrailingEmptyBlocks();
-            this.overflowFile.saveHeader();
             return;
         } else if (newPrimaryRecords == 0) {
             this.primaryFile.incrementTotalBlocks();
             this.primaryFile.writeBlockToFile(block, bucket);
-            this.primaryFile.saveHeader();
             this.overflowFile.trimTrailingEmptyBlocks();
-            this.overflowFile.saveHeader();
             return;
         }
         ChainedBlock<T> lastBlock = block;
@@ -376,18 +371,12 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
         this.primaryFile.setTotalRecords(this.primaryFile.getTotalRecords() + newPrimaryRecords);
         this.overflowFile.setTotalRecords(this.overflowFile.getTotalRecords() + newOverflowRecords);
         this.overflowFile.trimTrailingEmptyBlocks();
-        this.primaryFile.saveHeader();
-        this.overflowFile.saveHeader();
     }
 
     public void close() {
         this.saveDirectory();
         this.primaryFile.close();
         this.overflowFile.close();
-    }
-
-    public String getFolderPath() {
-        return this.baseFolder;
     }
 
     public HeapFile<ChainedBlock<T>,T> getPrimaryFile() {
