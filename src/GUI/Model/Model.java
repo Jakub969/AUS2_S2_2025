@@ -22,8 +22,8 @@ public class Model {
         this.currentPCRFolder = pcrFolder;
 
         // Create folders if they don't exist
-        createFolder(osobaFolder);
-        createFolder(pcrFolder);
+        this.createFolder(osobaFolder);
+        this.createFolder(pcrFolder);
 
         this.hashFileOsoba = new LinearHashFile<>(Osoba.class, 4, Osoba::getHash,
                 osobaFolder, 512, 256);
@@ -39,8 +39,8 @@ public class Model {
         this.currentPCRFolder = pcrFolderPath;
 
         // Create folders if they don't exist
-        createFolder(osobaFolderPath);
-        createFolder(pcrFolderPath);
+        this.createFolder(osobaFolderPath);
+        this.createFolder(pcrFolderPath);
 
         this.hashFileOsoba = new LinearHashFile<>(Osoba.class, initialBuckets,
                 Osoba::getHash, osobaFolderPath, blockSizePrimary, blockSizeOverflow);
@@ -105,11 +105,11 @@ public class Model {
 
     // Close all files
     public void close() {
-        if (hashFileOsoba != null) {
-            hashFileOsoba.close();
+        if (this.hashFileOsoba != null) {
+            this.hashFileOsoba.close();
         }
-        if (hashFilePCRTest != null) {
-            hashFilePCRTest.close();
+        if (this.hashFilePCRTest != null) {
+            this.hashFilePCRTest.close();
         }
     }
 
@@ -117,12 +117,12 @@ public class Model {
     public void createNewOsobaFile(String folderPath, int initialBuckets,
                                    int blockSizePrimary, int blockSizeOverflow) {
         // Close existing file if open
-        if (hashFileOsoba != null) {
-            hashFileOsoba.close();
+        if (this.hashFileOsoba != null) {
+            this.hashFileOsoba.close();
         }
 
         // Create folder
-        createFolder(folderPath);
+        this.createFolder(folderPath);
 
         // Create new file
         this.hashFileOsoba = new LinearHashFile<>(Osoba.class, initialBuckets,
@@ -134,12 +134,12 @@ public class Model {
     public void createNewPCRFile(String folderPath, int initialBuckets,
                                  int blockSizePrimary, int blockSizeOverflow) {
         // Close existing file if open
-        if (hashFilePCRTest != null) {
-            hashFilePCRTest.close();
+        if (this.hashFilePCRTest != null) {
+            this.hashFilePCRTest.close();
         }
 
         // Create folder
-        createFolder(folderPath);
+        this.createFolder(folderPath);
 
         // Create new file
         this.hashFilePCRTest = new LinearHashFile<>(PCRTest.class, initialBuckets,
@@ -150,8 +150,8 @@ public class Model {
     // Open existing Osoba file
     public void openOsobaFile(String folderPath) {
         // Close existing file if open
-        if (hashFileOsoba != null) {
-            hashFileOsoba.close();
+        if (this.hashFileOsoba != null) {
+            this.hashFileOsoba.close();
         }
 
         // Check if folder exists and has valid files
@@ -171,8 +171,8 @@ public class Model {
     // Open existing PCR file
     public void openPCRFile(String folderPath) {
         // Close existing file if open
-        if (hashFilePCRTest != null) {
-            hashFilePCRTest.close();
+        if (this.hashFilePCRTest != null) {
+            this.hashFilePCRTest.close();
         }
 
         // Check if folder exists and has valid files
@@ -191,19 +191,27 @@ public class Model {
 
     // Getters for current folder paths
     public String getCurrentOsobaFolder() {
-        return currentOsobaFolder;
+        return this.currentOsobaFolder;
     }
 
     public String getCurrentPCRFolder() {
-        return currentPCRFolder;
+        return this.currentPCRFolder;
     }
 
     // Check if files are loaded
     public boolean isOsobaFileLoaded() {
-        return hashFileOsoba != null;
+        return this.hashFileOsoba != null;
     }
 
     public boolean isPCRFileLoaded() {
-        return hashFilePCRTest != null;
+        return this.hashFilePCRTest != null;
+    }
+
+    public LinearHashFile<Osoba> getHashFileOsoba() {
+        return this.hashFileOsoba;
+    }
+
+    public LinearHashFile<PCRTest> getHashFilePCRTest() {
+        return this.hashFilePCRTest;
     }
 }
