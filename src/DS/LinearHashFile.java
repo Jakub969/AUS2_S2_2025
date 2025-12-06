@@ -311,8 +311,6 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
 
         int overflowDiff = newOverflowRecords - previousOverflowRecords;
         this.overflowFile.setTotalRecords(this.overflowFile.getTotalRecords() + overflowDiff);
-        this.primaryFile.saveHeader();
-        this.overflowFile.saveHeader();
         return nextBLockPointers;
     }
 
