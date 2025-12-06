@@ -26,11 +26,12 @@ public class Osoba implements IRecord<Osoba>, IHashable {
         this.UUID = "";
     }
 
-    public Osoba(String meno, String priezvisko, Date datumNarodenia, String UUID) {
+    public Osoba(String meno, String priezvisko, Date datumNarodenia, String UUID, Integer[] testyPacienta) {
         this.meno = meno;
         this.priezvisko = priezvisko;
         this.datumNarodenia = datumNarodenia;
         this.UUID = UUID;
+        this.testyPacienta = testyPacienta;
     }
 
     public String getMeno() {
@@ -49,6 +50,18 @@ public class Osoba implements IRecord<Osoba>, IHashable {
         return this.UUID;
     }
 
+    public void setMeno(String meno) {
+        this.meno = meno;
+    }
+
+    public void setPriezvisko(String priezvisko) {
+        this.priezvisko = priezvisko;
+    }
+
+    public void setDatumNarodenia(Date datumNarodenia) {
+        this.datumNarodenia = datumNarodenia;
+    }
+
     @Override
     public boolean isEqual(Osoba object) {
         return this.UUID.equals(object.UUID);
@@ -56,7 +69,7 @@ public class Osoba implements IRecord<Osoba>, IHashable {
 
     @Override
     public Osoba createCopy() {
-        return new Osoba(this.meno, this.priezvisko, new Date(this.datumNarodenia.getTime()), this.UUID);
+        return new Osoba(this.meno, this.priezvisko, new Date(this.datumNarodenia.getTime()), this.UUID, this.testyPacienta.clone());
     }
 
     @Override
@@ -179,7 +192,7 @@ public class Osoba implements IRecord<Osoba>, IHashable {
     }
 
     public static Osoba fromUUID(String uuid) {
-        return new Osoba("", "", new Date(0), uuid);
+        return new Osoba("", "", new Date(0), uuid, new Integer[TESTY_ARRAY_SIZE]);
     }
 
     public static Osoba generateRandom() {
@@ -188,7 +201,7 @@ public class Osoba implements IRecord<Osoba>, IHashable {
         String priez = randomSurname();
         String uuid = randomString(10);
         Date d = new Date(Math.abs(r.nextLong()) % System.currentTimeMillis());
-        return new Osoba(meno, priez, d, uuid);
+        return new Osoba(meno, priez, d, uuid, new Integer[TESTY_ARRAY_SIZE]);
     }
 
     private static String randomString(int len) {
@@ -224,7 +237,7 @@ public class Osoba implements IRecord<Osoba>, IHashable {
     }
 
     public void pridatTest(int testID) {
-        for (int i = 0; i < this.testyPacienta.length; i++) {
+        for (int i = 0; i < TESTY_ARRAY_SIZE; i++) {
             if (this.testyPacienta[i] == null) {
                 this.testyPacienta[i] = testID;
                 return;

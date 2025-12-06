@@ -49,6 +49,22 @@ public class PCRTest implements IRecord<PCRTest>, IHashable {
         return this.datumTestu;
     }
 
+    public void setVysledokTestu(boolean vysledokTestu) {
+        this.vysledokTestu = vysledokTestu;
+    }
+
+    public void setHodnotaTestu(double hodnotaTestu) {
+        this.hodnotaTestu = hodnotaTestu;
+    }
+
+    public void setPoznamka(String poznamka) {
+        this.poznamka = poznamka;
+    }
+
+    public void setDatumTestu(Date datumTestu) {
+        this.datumTestu = datumTestu;
+    }
+
     public PCRTest(Date datumTestu, String UUIDPacienta, int kodTestu, boolean vysledokTestu, double hodnotaTestu, String poznamka) {
         this.datumTestu = datumTestu;
         this.UUIDPacienta = UUIDPacienta;

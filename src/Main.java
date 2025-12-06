@@ -2,7 +2,6 @@ import DS.Block;
 import DS.ChainedBlock;
 import DS.HeapFile;
 import DS.LinearHashFile;
-import GUI.View.MainWindow;
 import Tester.HashFileTester;
 import Data.Osoba;
 import Tester.HeapFileTester;
@@ -29,7 +28,5 @@ public class Main {
         HashFileTester<Osoba> tester = new HashFileTester<>(hashFile,Osoba::getHash,seed);
         tester.performRandomOperations(50);
         tester.printBucketDistribution();
-        //MainWindow<Osoba> mainWindow = new MainWindow<>(hashFile);
-        //mainWindow.setVisible(true);
     }
 }

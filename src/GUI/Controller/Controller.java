@@ -4,7 +4,10 @@ import DS.ChainedBlock;
 import GUI.Model.Model;
 import Data.Osoba;
 import Data.PCRTest;
+
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public class Controller {
     private Model model;
@@ -44,12 +47,11 @@ public class Controller {
         }
     }
 
-    // Osoba operations
     public boolean insertOsoba(String meno, String priezvisko, Date datumNarodenia, String uuid) {
         if (this.model == null) return false;
 
         try {
-            Osoba osoba = new Osoba(meno, priezvisko, datumNarodenia, uuid);
+            Osoba osoba = new Osoba(meno, priezvisko, datumNarodenia, uuid, new Integer[6]);
             this.model.vlozOsobu(osoba);
             return true;
         } catch (Exception e) {
@@ -57,21 +59,79 @@ public class Controller {
         }
     }
 
-    public Osoba findOsoba(String uuid) {
-        if (this.model == null) return null;
+    public List<PCRTest> getPCRTestsForPerson(String uuid) {
+        List<PCRTest> tests = new ArrayList<>();
+
+        if (this.model == null) {
+            return tests;
+        }
 
         try {
             Osoba search = Osoba.fromUUID(uuid);
-            return this.model.vyhladatOsobu(search);
+            Osoba foundPerson = this.model.vyhladatOsobu(search);
+
+            if (foundPerson == null) {
+                return tests;
+            }
+
+            Integer[] testCodes = foundPerson.getTestyPacienta();
+
+            for (Integer testCode : testCodes) {
+                if (testCode != null) {
+                    PCRTest testSearch = PCRTest.fromTestID(testCode);
+                    PCRTest foundTest = this.model.vyhladatPCR(testSearch);
+                    if (foundTest != null) {
+                        tests.add(foundTest);
+                    }
+                }
+            }
+
+            return tests;
         } catch (Exception e) {
-            return null;
+            return tests;
         }
     }
 
-    public boolean editOsoba(Osoba osoba) {
+    public String getPersonWithTestsFormatted(String uuid) {
+        StringBuilder result = new StringBuilder();
+
+        if (this.model == null) {
+            return "Model not loaded.";
+        }
+
+        try {
+            Osoba search = Osoba.fromUUID(uuid);
+            Osoba foundPerson = this.model.vyhladatOsobu(search);
+
+            if (foundPerson == null) {
+                return "Person not found.";
+            }
+            result.append("=== PERSON DETAILS ===\n");
+            result.append(foundPerson).append("\n\n");
+
+            List<PCRTest> tests = this.getPCRTestsForPerson(uuid);
+
+            result.append("=== PCR TESTS (").append(tests.size()).append(") ===\n");
+            if (tests.isEmpty()) {
+                result.append("No PCR tests found for this person.\n");
+            } else {
+                for (int i = 0; i < tests.size(); i++) {
+                    result.append("\nTest ").append(i + 1).append(":\n");
+                    result.append(tests.get(i).toString()).append("\n");
+                }
+            }
+
+            return result.toString();
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
+        }
+    }
+
+    public boolean editOsoba(String meno, String priezvisko, Date datumNarodenia, String uuid) {
         if (this.model == null) return false;
 
         try {
+            Osoba osoba = new Osoba(meno, priezvisko, datumNarodenia, uuid, new Integer[6]);
             this.model.editOsoba(osoba);
             return true;
         } catch (Exception e) {
@@ -79,7 +139,6 @@ public class Controller {
         }
     }
 
-    // PCR Test operations
     public boolean insertPCRTest(Date datumTestu, String uuidPacienta, int kodTestu,
                                  boolean vysledokTestu, double hodnotaTestu, String poznamka) {
         if (this.model == null) return false;
@@ -105,10 +164,11 @@ public class Controller {
         }
     }
 
-    public boolean editPCRTest(PCRTest test) {
+    public boolean editPCRTest(Date datumTestu, double hodnota, boolean vysledok, String poznamka, int kodTestu) {
         if (this.model == null) return false;
 
         try {
+            PCRTest test = new PCRTest(datumTestu, "", kodTestu, vysledok, hodnota, poznamka);
             this.model.editPCR(test);
             return true;
         } catch (Exception e) {

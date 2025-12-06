@@ -16,12 +16,10 @@ public class Model {
         this("osoba_data", "pcr_data");
     }
 
-    // Constructor with folder names
     public Model(String osobaFolder, String pcrFolder) {
         this.currentOsobaFolder = osobaFolder;
         this.currentPCRFolder = pcrFolder;
 
-        // Create folders if they don't exist
         this.createFolder(osobaFolder);
         this.createFolder(pcrFolder);
 
@@ -32,13 +30,10 @@ public class Model {
         this.pcrTestSequence = new SequenceManager();
     }
 
-    // Constructor with full folder paths
     public Model(String osobaFolderPath, String pcrFolderPath,
                  int initialBuckets, int blockSizePrimary, int blockSizeOverflow) {
         this.currentOsobaFolder = osobaFolderPath;
         this.currentPCRFolder = pcrFolderPath;
-
-        // Create folders if they don't exist
         this.createFolder(osobaFolderPath);
         this.createFolder(pcrFolderPath);
 
@@ -70,11 +65,22 @@ public class Model {
     }
 
     public void editOsoba(Osoba osoba) {
-        this.hashFileOsoba.edit(osoba);
+        Osoba dummy = Osoba.fromUUID(osoba.getUUID());
+        Osoba oldOsoba = this.hashFileOsoba.find(dummy);
+        oldOsoba.setMeno(osoba.getMeno());
+        oldOsoba.setPriezvisko(osoba.getPriezvisko());
+        oldOsoba.setDatumNarodenia(osoba.getDatumNarodenia());
+        this.hashFileOsoba.edit(oldOsoba);
     }
 
     public void editPCR(PCRTest test) {
-        this.hashFilePCRTest.edit(test);
+        PCRTest dummy = PCRTest.fromTestID(test.getKodTestu());
+        PCRTest oldPCR = this.hashFilePCRTest.find(dummy);
+        oldPCR.setDatumTestu(test.getDatumTestu());
+        oldPCR.setVysledokTestu(test.isVysledokTestu());
+        oldPCR.setHodnotaTestu(test.getHodnotaTestu());
+        oldPCR.setPoznamka(test.getPoznamka());
+        this.hashFilePCRTest.edit(oldPCR);
     }
 
     public void generujUdaje(int pocet) {

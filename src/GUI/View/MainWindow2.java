@@ -123,6 +123,7 @@ public class MainWindow2 extends JFrame {
         JPanel buttonPanel = new JPanel(new FlowLayout());
         JButton insertBtn = new JButton("Insert");
         JButton findBtn = new JButton("Find");
+        JButton editBtn = new JButton("Edit");
         JButton showBtn = new JButton("Show Buckets");
         JButton clearBtn = new JButton("Clear");
 
@@ -134,6 +135,12 @@ public class MainWindow2 extends JFrame {
 
         findBtn.addActionListener(e -> {
             this.findOsoba(uuidField.getText());
+        });
+
+        editBtn.addActionListener(e -> {
+            this.updateOsoba(menoField.getText(), priezviskoField.getText(),
+                    datumField.getText(), uuidField.getText());
+            this.updateStatusLabels();
         });
 
         showBtn.addActionListener(e -> {
@@ -150,6 +157,7 @@ public class MainWindow2 extends JFrame {
 
         buttonPanel.add(insertBtn);
         buttonPanel.add(findBtn);
+        buttonPanel.add(editBtn);
         buttonPanel.add(showBtn);
         buttonPanel.add(clearBtn);
 
@@ -157,6 +165,26 @@ public class MainWindow2 extends JFrame {
         panel.add(buttonPanel, BorderLayout.CENTER);
 
         return panel;
+    }
+
+    private void updateOsoba(String meno, String priezvisko, String datum, String UUID) {
+        if (!this.controller.isModelLoaded()) {
+            this.outputArea.setText("Model not loaded. Please create or open a model first.");
+            return;
+        }
+        try {
+            SimpleDateFormat df = new SimpleDateFormat("dd.MM.yyyy");
+            Date date = df.parse(datum);
+
+            boolean success = this.controller.editOsoba(meno, priezvisko, date, UUID);
+            if (success) {
+                this.outputArea.setText("Osoba updated successfully.\nMeno: " + meno + ", Priezvisko: " + priezvisko + ", Dátum: " + date);
+            } else {
+                this.outputArea.setText("Failed to update Osoba.");
+            }
+        } catch (Exception e) {
+            this.outputArea.setText("Update failed: " + e.getMessage());
+        }
     }
 
     private JPanel createPCRPanel() {
@@ -190,6 +218,7 @@ public class MainWindow2 extends JFrame {
         JPanel buttonPanel = new JPanel(new FlowLayout());
         JButton insertBtn = new JButton("Insert");
         JButton findBtn = new JButton("Find");
+        JButton editBtn = new JButton("Edit");
         JButton showBtn = new JButton("Show Buckets");
         JButton clearBtn = new JButton("Clear");
 
@@ -202,6 +231,12 @@ public class MainWindow2 extends JFrame {
 
         findBtn.addActionListener(e -> {
             this.findPCRTest(kodField.getText());
+        });
+
+        editBtn.addActionListener(e -> {
+            this.updatePCRTest(datumField.getText(), hodnotaField.getText(),
+                    vysledokCheck.isSelected(), poznamkaField.getText(), Integer.parseInt(kodField.getText()));
+            this.updateStatusLabels();
         });
 
         showBtn.addActionListener(e -> {
@@ -220,6 +255,7 @@ public class MainWindow2 extends JFrame {
 
         buttonPanel.add(insertBtn);
         buttonPanel.add(findBtn);
+        buttonPanel.add(editBtn);
         buttonPanel.add(showBtn);
         buttonPanel.add(clearBtn);
 
@@ -227,6 +263,29 @@ public class MainWindow2 extends JFrame {
         panel.add(buttonPanel, BorderLayout.CENTER);
 
         return panel;
+    }
+
+    private void updatePCRTest(String datum, String hodnota, boolean vysledok, String poznamka, int kodTestu) {
+        if (!this.controller.isModelLoaded()) {
+            this.outputArea.setText("Model not loaded. Please create or open a model first.");
+            return;
+        }
+        try {
+            SimpleDateFormat df = new SimpleDateFormat("dd.MM.yyyy");
+            Date date = df.parse(datum);
+            double hodnotaTestu = Double.parseDouble(hodnota);
+
+            boolean success = this.controller.editPCRTest(date, hodnotaTestu, vysledok, poznamka, kodTestu);
+            if (success) {
+                this.outputArea.setText("PCR Test updated successfully.\nDátum: " + date +
+                        ", Hodnota: " + hodnotaTestu + ", Výsledok: " + vysledok +
+                        ", Poznámka: " + poznamka);
+            } else {
+                this.outputArea.setText("Failed to update PCR Test.");
+            }
+        } catch (Exception e) {
+            this.outputArea.setText("Update failed: " + e.getMessage());
+        }
     }
 
     private void createNewModel() {
@@ -361,8 +420,8 @@ public class MainWindow2 extends JFrame {
         }
 
         try {
-            Object found = this.controller.findOsoba(uuid);
-            this.outputArea.setText(found != null ? "Found:\n" + found : "Osoba not found.");
+            String result = this.controller.getPersonWithTestsFormatted(uuid);
+            this.outputArea.setText(result);
         } catch (Exception e) {
             this.outputArea.setText("Find failed: " + e.getMessage());
         }
