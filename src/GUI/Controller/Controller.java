@@ -198,9 +198,12 @@ public class Controller {
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append("=== OSOBA BUCKETS ===\n\n");
+        sb.append("=== OSOBA BUCKETS ===\n");
 
         int totalBuckets = this.model.getHashFileOsoba().getPrimaryFile().getTotalBlocks();
+        sb.append("Total Buckets: ").append(totalBuckets).append("\n");
+        sb.append("Total records: ").append(this.model.getHashFileOsoba().getPrimaryFile().getTotalRecords() +
+                this.model.getHashFileOsoba().getOverflowFile().getTotalRecords()).append("\n\n");
 
         for (int i = 0; i < totalBuckets; i++) {
             sb.append("Bucket ").append(i).append(":\n");
@@ -230,9 +233,12 @@ public class Controller {
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append("=== OSOBA BUCKETS ===\n\n");
+        sb.append("=== OSOBA BUCKETS ===\n");
 
         int totalBuckets = this.model.getHashFilePCRTest().getPrimaryFile().getTotalBlocks();
+        sb.append("Total Buckets: ").append(totalBuckets).append("\n");
+        sb.append("Total records: ").append(this.model.getHashFilePCRTest().getPrimaryFile().getTotalRecords() +
+                this.model.getHashFilePCRTest().getOverflowFile().getTotalRecords()).append("\n\n");
 
         for (int i = 0; i < totalBuckets; i++) {
             sb.append("Bucket ").append(i).append(":\n");
