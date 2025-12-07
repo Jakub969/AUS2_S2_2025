@@ -40,19 +40,19 @@ public class HeapFile<B extends Block<T>, T extends IRecord<T>> {
     public int insertRecord(T record) {
         int blockIndex;
 
+        boolean partiallyEmptyIndex = false;
         if (!this.partiallyEmptyBlocks.isEmpty()) {
             blockIndex = this.partiallyEmptyBlocks.removeFirst();
+            partiallyEmptyIndex = true;
         } else if (!this.emptyBlocks.isEmpty()) {
             blockIndex = this.emptyBlocks.removeFirst();
         } else {
             blockIndex = this.totalBlocks;
         }
 
-        B block;
-        if (blockIndex < this.totalBlocks) {
+        B block = this.createBlock();
+        if (partiallyEmptyIndex) {
             block = this.getBlock(blockIndex);
-        } else {
-            block = this.createBlock();
         }
 
         block.addRecord(record);
