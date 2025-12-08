@@ -179,7 +179,7 @@ public class LinearHashFile<T extends IRecord<T> & IHashable> {
     }
 
     private void splitNextBucketIfNeeded() {
-        double loadFactor = (double) (this.primaryFile.getTotalRecords()) / ((this.nextSplit + (1 << this.i)) * this.primaryFile.getBlockFactor());
+        double loadFactor = (double) (this.primaryFile.getTotalRecords() + this.overflowFile.getTotalRecords()) / ((this.nextSplit + (1 << this.i)) * this.primaryFile.getBlockFactor());
         if (loadFactor > 0.75) {
             this.splitNextBucket();
         }
