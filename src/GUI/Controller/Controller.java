@@ -260,4 +260,92 @@ public class Controller {
         }
         return sb.toString();
     }
+
+    public String getOverflowSequencePrint(String className) {
+        if (this.model == null) {
+            return "Model not loaded.";
+        }
+        if (className.equals("Osoba")) {
+            if (this.model.getHashFileOsoba() == null) {
+                return "Osoba file not loaded.";
+            }
+            StringBuilder sb = new StringBuilder();
+            sb.append("=== OSOBA OVERFLOW FILE ===\n");
+            int totalBuckets = this.model.getHashFileOsoba().getOverflowFile().getTotalBlocks();
+            sb.append("Total Buckets: ").append(totalBuckets).append("\n");
+            sb.append("Total records: ").append(this.model.getHashFileOsoba().getOverflowFile().getTotalRecords()).append("\n\n");
+            for (int i = 0; i < totalBuckets; i++) {
+                ChainedBlock<Osoba> b = this.model.getHashFileOsoba().getOverflowFile().getBlock(i);
+                this.printRecords(sb, i, b);
+            }
+            return sb.toString();
+        } else if (className.equals("Test")) {
+            if (this.model.getHashFilePCRTest() == null) {
+                return "PCRTest file not loaded.";
+            }
+            StringBuilder sb = new StringBuilder();
+            sb.append("=== PCRTEST OVERFLOW FILE ===\n");
+            int totalBuckets = this.model.getHashFilePCRTest().getOverflowFile().getTotalBlocks();
+            sb.append("Total Buckets: ").append(totalBuckets).append("\n");
+            sb.append("Total records: ").append(this.model.getHashFilePCRTest().getOverflowFile().getTotalRecords()).append("\n\n");
+            for (int i = 0; i < totalBuckets; i++) {
+                ChainedBlock<PCRTest> b = this.model.getHashFilePCRTest().getOverflowFile().getBlock(i);
+                this.printTests(sb, i, b);
+            }
+            return sb.toString();
+        } else {
+            return "Unknown class name: " + className;
+        }
+    }
+
+    private void printTests(StringBuilder sb, int i, ChainedBlock<PCRTest> b) {
+        sb.append("Block ").append(i).append(", NextBlockIndex: ").append(b.getNextBlockIndex()).append(" (").append(b.getValidCount()).append(" records):\n");
+        for (int j = 0; j < b.getValidCount(); j++) {
+            sb.append("    ").append(b.getRecordAt(j)).append("\n");
+        }
+    }
+
+    private void printRecords(StringBuilder sb, int i, ChainedBlock<Osoba> b) {
+        sb.append("Block ").append(i).append(", NextBlockIndex: ").append(b.getNextBlockIndex()).append(" (").append(b.getValidCount()).append(" records):\n");
+        for (int j = 0; j < b.getValidCount(); j++) {
+            sb.append("    ").append(b.getRecordAt(j)).append("\n");
+        }
+    }
+
+    public String getPrimarySequencePrint(String className) {
+        if (this.model == null) {
+            return "Model not loaded.";
+        }
+        if (className.equals("Osoba")) {
+            if (this.model.getHashFileOsoba() == null) {
+                return "Osoba file not loaded.";
+            }
+            StringBuilder sb = new StringBuilder();
+            sb.append("=== OSOBA PRIMARY FILE ===\n");
+            int totalBuckets = this.model.getHashFileOsoba().getPrimaryFile().getTotalBlocks();
+            sb.append("Total Buckets: ").append(totalBuckets).append("\n");
+            sb.append("Total records: ").append(this.model.getHashFileOsoba().getPrimaryFile().getTotalRecords()).append("\n\n");
+            for (int i = 0; i < totalBuckets; i++) {
+                ChainedBlock<Osoba> b = this.model.getHashFileOsoba().getPrimaryFile().getBlock(i);
+                this.printRecords(sb, i, b);
+            }
+            return sb.toString();
+        } else if (className.equals("Test")) {
+            if (this.model.getHashFilePCRTest() == null) {
+                return "PCRTest file not loaded.";
+            }
+            StringBuilder sb = new StringBuilder();
+            sb.append("=== PCRTEST PRIMARY FILE ===\n");
+            int totalBuckets = this.model.getHashFilePCRTest().getPrimaryFile().getTotalBlocks();
+            sb.append("Total Buckets: ").append(totalBuckets).append("\n");
+            sb.append("Total records: ").append(this.model.getHashFilePCRTest().getPrimaryFile().getTotalRecords()).append("\n\n");
+            for (int i = 0; i < totalBuckets; i++) {
+                ChainedBlock<PCRTest> b = this.model.getHashFilePCRTest().getPrimaryFile().getBlock(i);
+                this.printTests(sb, i, b);
+            }
+            return sb.toString();
+        } else {
+            return "Unknown class name: " + className;
+        }
+    }
 }

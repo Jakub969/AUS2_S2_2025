@@ -11,6 +11,9 @@ public class Model {
     private final SequenceManager pcrTestSequence;
     private String currentOsobaFolder;
     private String currentPCRFolder;
+    private File blockSizesFile;
+    private int blockSizePrimary;
+    private int blockSizeOverflow;
 
     public Model() {
         this("osoba_data", "pcr_data");
@@ -23,10 +26,12 @@ public class Model {
         this.createFolder(osobaFolder);
         this.createFolder(pcrFolder);
 
+        this.blockSizesFile = new File(osobaFolder + File.separator + "block_sizes.txt");
+        this.loadBlockSizes();
         this.hashFileOsoba = new LinearHashFile<>(Osoba.class, 4, Osoba::getHash,
-                osobaFolder, 512, 256);
+                osobaFolder, this.blockSizePrimary, this.blockSizeOverflow);
         this.hashFilePCRTest = new LinearHashFile<>(PCRTest.class, 4, PCRTest::getHash,
-                pcrFolder, 512, 256);
+                pcrFolder, this.blockSizePrimary, this.blockSizeOverflow);
         this.pcrTestSequence = new SequenceManager();
     }
 
@@ -42,6 +47,31 @@ public class Model {
         this.hashFilePCRTest = new LinearHashFile<>(PCRTest.class, initialBuckets,
                 PCRTest::getHash, pcrFolderPath, blockSizePrimary, blockSizeOverflow);
         this.pcrTestSequence = new SequenceManager();
+        this.blockSizesFile = new File(osobaFolderPath + File.separator + "block_sizes.txt");
+        this.blockSizePrimary = blockSizePrimary;
+        this.blockSizeOverflow = blockSizeOverflow;
+        this.saveBlockSizes();
+    }
+
+    private void saveBlockSizes() {
+        try (java.io.BufferedWriter writer = new java.io.BufferedWriter(new java.io.FileWriter(this.blockSizesFile))) {
+            writer.write(this.blockSizePrimary + "\n");
+            writer.write(this.blockSizeOverflow + "\n");
+        } catch (java.io.IOException e) {
+            System.err.println("Error saving block sizes: " + e.getMessage());
+        }
+    }
+
+    private void loadBlockSizes() {
+        if (!this.blockSizesFile.exists()) {
+            return;
+        }
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(this.blockSizesFile))) {
+            this.blockSizePrimary = Integer.parseInt(reader.readLine());
+            this.blockSizeOverflow = Integer.parseInt(reader.readLine());
+        } catch (java.io.IOException | NumberFormatException e) {
+            System.err.println("Error loading block sizes: " + e.getMessage());
+        }
     }
 
     public void vlozPCRTest(PCRTest test) {
@@ -115,6 +145,9 @@ public class Model {
         }
         if (this.hashFilePCRTest != null) {
             this.hashFilePCRTest.close();
+        }
+        if (this.pcrTestSequence != null) {
+            this.pcrTestSequence.saveSequence();
         }
     }
 

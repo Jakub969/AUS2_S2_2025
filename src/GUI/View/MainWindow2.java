@@ -116,6 +116,8 @@ public class MainWindow2 extends JFrame {
         JButton findBtn = new JButton("Find");
         JButton editBtn = new JButton("Edit");
         JButton showBtn = new JButton("Show Buckets");
+        JButton showPrimary = new JButton("Show Primary file");
+        JButton showoverflow = new JButton("Show overflow file");
         JButton clearBtn = new JButton("Clear");
 
         insertBtn.addActionListener(e -> {
@@ -138,6 +140,9 @@ public class MainWindow2 extends JFrame {
             this.showOsobaBuckets();
         });
 
+        showPrimary.addActionListener(e -> {this.showPrimarySequencePrint("Osoba");});
+        showoverflow.addActionListener(e -> {this.showOverflowSequencePrint("Osoba");});
+
         clearBtn.addActionListener(e -> {
             menoField.setText("");
             priezviskoField.setText("");
@@ -150,6 +155,8 @@ public class MainWindow2 extends JFrame {
         buttonPanel.add(findBtn);
         buttonPanel.add(editBtn);
         buttonPanel.add(showBtn);
+        buttonPanel.add(showPrimary);
+        buttonPanel.add(showoverflow);
         buttonPanel.add(clearBtn);
 
         panel.add(inputPanel, BorderLayout.NORTH);
@@ -209,6 +216,8 @@ public class MainWindow2 extends JFrame {
         JButton findBtn = new JButton("Find");
         JButton editBtn = new JButton("Edit");
         JButton showBtn = new JButton("Show Buckets");
+        JButton showPrimary = new JButton("Show Primary file");
+        JButton showoverflow = new JButton("Show overflow file");
         JButton clearBtn = new JButton("Clear");
 
         insertBtn.addActionListener(e -> {
@@ -232,6 +241,9 @@ public class MainWindow2 extends JFrame {
             this.showPCRBuckets();
         });
 
+        showPrimary.addActionListener(e -> {this.showPrimarySequencePrint("Test");});
+        showoverflow.addActionListener(e -> {this.showOverflowSequencePrint("Test");});
+
         clearBtn.addActionListener(e -> {
             datumField.setText("");
             uuidField.setText("");
@@ -246,12 +258,40 @@ public class MainWindow2 extends JFrame {
         buttonPanel.add(findBtn);
         buttonPanel.add(editBtn);
         buttonPanel.add(showBtn);
+        buttonPanel.add(showPrimary);
+        buttonPanel.add(showoverflow);
         buttonPanel.add(clearBtn);
 
         panel.add(inputPanel, BorderLayout.NORTH);
         panel.add(buttonPanel, BorderLayout.CENTER);
 
         return panel;
+    }
+
+    private void showOverflowSequencePrint(String className) {
+        if (!this.controller.isModelLoaded()) {
+            this.outputArea.setText("Model not loaded.");
+            return;
+        }
+        try {
+            String result = this.controller.getOverflowSequencePrint(className);
+            this.outputArea.setText(result);
+        } catch (Exception e) {
+            this.outputArea.setText("Operation failed: " + e.getMessage());
+        }
+    }
+
+    private void showPrimarySequencePrint(String className) {
+        if (!this.controller.isModelLoaded()) {
+            this.outputArea.setText("Model not loaded.");
+            return;
+        }
+        try {
+            String result = this.controller.getPrimarySequencePrint(className);
+            this.outputArea.setText(result);
+        } catch (Exception e) {
+            this.outputArea.setText("Operation failed: " + e.getMessage());
+        }
     }
 
     private void updatePCRTest(String datum, String hodnota, boolean vysledok, String poznamka, int kodTestu) {

@@ -25,7 +25,6 @@ public class SequenceManager {
 
     public synchronized int getNextValue() {
         this.currentValue++;
-        this.saveSequence();
         return this.currentValue;
     }
 
@@ -33,7 +32,7 @@ public class SequenceManager {
         return this.currentValue;
     }
 
-    private void saveSequence() {
+    public void saveSequence() {
         try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(SEQUENCE_FILE))) {
             writer.write(String.valueOf(this.currentValue));
         } catch (IOException e) {
